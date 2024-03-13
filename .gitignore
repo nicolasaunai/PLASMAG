@@ -1,0 +1,10 @@
+/data/*
+/docs/_build/
+/Experimental/
+/output/*
+
+.idea/
+/__pycache__/
+/Legacy_code/
+
+/src/model/strategies/test_strategy/random_strategy_tests.py
