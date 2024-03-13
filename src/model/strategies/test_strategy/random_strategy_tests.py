@@ -4,7 +4,7 @@ from model.strategies import CalculationStrategy
 
 class ZCalculationStrategy(CalculationStrategy):
     """
-        Calculates a value 'Z' based on the result of the resistance calculation 'R'
+        Calculates a value 'Z' based on the result of the strategy_lib calculation 'R'
         and a direct parameter 'B'. This strategy exemplifies how to use results from
         other calculations along with direct parameters.
         """
@@ -21,7 +21,7 @@ class ZCalculationStrategy(CalculationStrategy):
 
 class ZCalculationStrategy2(CalculationStrategy):
     """
-        Calculates a value 'Z' based on the result of the resistance calculation 'R'
+        Calculates a value 'Z' based on the result of the strategy_lib calculation 'R'
         and a calculated parameter 'C'
 
         """
@@ -38,7 +38,7 @@ class ZCalculationStrategy2(CalculationStrategy):
 
 class CCalculationStrategy(CalculationStrategy):
     """
-        Calculates a value 'C' based on the result of the resistance calculation 'R'
+        Calculates a value 'C' based on the result of the strategy_lib calculation 'R'
         and a direct parameter 'B'. This strategy exemplifies how to use results from
         other calculations along with direct parameters.
         """

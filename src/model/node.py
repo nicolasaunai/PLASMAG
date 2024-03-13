@@ -86,16 +86,16 @@ class CalculationNode:
                 raise KeyError(f"Error calculating {self.name}: missing dependency - {e}")
             except Exception as e:
                 raise Exception(f"Error calculating {self.name}: {e}")
+
+            # Store the calculated value in OutputData
+            self.engine.current_output_data.set_result(self.name, calculated_value)
+            return calculated_value
         else:
+            # If there's no strategy, return the calculated value without storing it in OutputData
             calculated_value = self.engine.current_parameters.data.get(self.name, None)
-
-        # Check if the calculation resulted in None
-        if calculated_value is None:
-            raise ValueError(f"Calculation for {self.name} node returned None")
-
-        # Store the calculated value in OutputData
-        self.engine.current_output_data.set_result(self.name, calculated_value)
-        return calculated_value
+            if calculated_value is None:
+                raise ValueError(f"Calculation for {self.name} node returned None")
+            return calculated_value
 
     def set_strategy(self, strategy):
         """

@@ -5,8 +5,8 @@ from model.strategies import CalculationStrategy
 
 class ResistanceCalculationStrategy(CalculationStrategy):
     """
-       Calculates the electrical resistance based on the number of turns (N),
-       surface resistance (Rs), and material density (rho).
+       Calculates the electrical strategy_lib based on the number of turns (N),
+       surface strategy_lib (Rs), and material density (rho).
        """
 
     def calculate(self, dependencies: dict, parameters: InputParameters):
@@ -22,7 +22,7 @@ class ResistanceCalculationStrategy(CalculationStrategy):
 
 class OtherResistanceCalculationStrategy(CalculationStrategy):
     """
-        A variant of the resistance calculation that applies an additional
+        A variant of the strategy_lib calculation that applies an additional
         factor to the result, effectively halving it. This demonstrates how
         different strategies might implement alternative calculations.
         """
@@ -40,7 +40,7 @@ class OtherResistanceCalculationStrategy(CalculationStrategy):
 
 class AnotherResistanceCalculationStrategy(CalculationStrategy):
     """
-        Extends the resistance calculation by incorporating an additional
+        Extends the strategy_lib calculation by incorporating an additional
         parameter 'A'. This strategy showcases how to handle calculations
         with additional input parameters.
         """
