@@ -79,8 +79,19 @@ class CalculationNode:
         dependencies = self.resolve_dependencies()
 
         # Perform the calculation using the strategy, if available; otherwise, use direct parameter
-        calculated_value = self._strategy.calculate(dependencies, self.engine.current_parameters) \
-            if self._strategy else self.engine.current_parameters.data.get(self.name, None)
+        if self._strategy:
+            try:
+                calculated_value = self._strategy.calculate(dependencies, self.engine.current_parameters)
+            except KeyError as e:
+                raise KeyError(f"Error calculating {self.name}: missing dependency - {e}")
+            except Exception as e:
+                raise Exception(f"Error calculating {self.name}: {e}")
+        else:
+            calculated_value = self.engine.current_parameters.data.get(self.name, None)
+
+        # Check if the calculation resulted in None
+        if calculated_value is None:
+            raise ValueError(f"Calculation for {self.name} node returned None")
 
         # Store the calculated value in OutputData
         self.engine.current_output_data.set_result(self.name, calculated_value)

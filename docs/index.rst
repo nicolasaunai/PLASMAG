@@ -14,6 +14,7 @@ Welcome to PLASMAG's documentation!
 
 
 
+
 Indices and tables
 ==================
 
