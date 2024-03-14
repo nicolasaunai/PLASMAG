@@ -34,6 +34,26 @@ default_values = {
     'nb_points_per_decade': 100,
 }
 
+parameter_ranges = {
+    'nb_spire': {'min': 1000, 'max': 20000},
+    'len_coil': {'min': 1, 'max': 200},
+    'kapthon_thick': {'min': 10, 'max': 300},
+    'insulator_thick': {'min': 1, 'max': 100},
+    'diam_out_mandrel': {'min': 1, 'max': 10},
+    'diam_wire': {'min': 10, 'max': 300},
+    'capa_tuning': {'min': 1, 'max': 1000},
+    'capa_triwire': {'min': 10, 'max': 1000},
+    'len_core': {'min': 1, 'max': 200},
+    'diam_core': {'min': 1, 'max': 100},
+    'ray_spire': {'min': 1, 'max': 100},
+    'rho_whire': {'min': 1, 'max': 10},
+    'coeff_expansion': {'min': 1, 'max': 10},
+
+    'f_start': {'min': 1, 'max': 1000},
+    'f_stop': {'min': 1000, 'max': 100000},
+    'nb_points_per_decade': {'min': 10, 'max': 1000},
+
+}
 class MplCanvas(FigureCanvas):
     def __init__(self):
         fig = Figure(figsize=(5, 4), dpi=100)
@@ -47,6 +67,7 @@ class MainGUI(QMainWindow):
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 800, 950)  # Adjust size as needed
 
+        self.currently_selected_input = None
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout()
@@ -77,18 +98,11 @@ class MainGUI(QMainWindow):
         self.calculate_btn.clicked.connect(self.calculate)
         self.main_layout.addWidget(self.calculate_btn)
 
-        self.nb_spire_slider = QSlider(Qt.Orientation.Horizontal)
-        self.nb_spire_slider.setMinimum(1000)  # Minimum nb_spire
-        self.nb_spire_slider.setMaximum(20000)  # Maximum nb_spire
-        self.nb_spire_slider.setValue(default_values['nb_spire'])
-        self.nb_spire_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.nb_spire_slider.setTickInterval(1000)
-        self.grid_layout.addWidget(QLabel('nb_spire:'), row, 0)
-        self.grid_layout.addWidget(self.nb_spire_slider, row, 1)
-        row += 1
+        self.global_slider = QSlider(Qt.Orientation.Horizontal)
+        self.global_slider.valueChanged.connect(self.update_selected_input_value)
+        self.main_layout.addWidget(self.global_slider)
 
-        self.nb_spire_slider.valueChanged.connect(self.update_nb_spire_value)
-        self.inputs['nb_spire'].setReadOnly(True)
+
 
         # Plot area
         self.canvas = MplCanvas()
@@ -96,8 +110,46 @@ class MainGUI(QMainWindow):
 
         self.controller = CalculationController()
 
-    def update_nb_spire_value(self, value):
-        self.inputs['nb_spire'].setText(str(value))
+        for parameter, line_edit in self.inputs.items():
+            line_edit.mousePressEvent = lambda event, le=line_edit, param=parameter: self.bind_slider_to_input(le,
+                                                                                                               param)
+            line_edit.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+
+
+
+        self.slider_precision = 100
+
+    def bind_slider_to_input(self, line_edit, parameter):
+        self.currently_selected_input = line_edit
+        current_value = float(line_edit.text())
+
+        self.adjust_slider_properties(parameter)
+
+        try:
+
+            slider_range = self.global_slider.maximum() - self.global_slider.minimum()
+            field_range = parameter_ranges[parameter]['max'] - parameter_ranges[parameter]['min']
+            slider_value = ((current_value - parameter_ranges[parameter][
+                'min']) / field_range) * slider_range + self.global_slider.minimum()
+
+            self.global_slider.setValue(float(slider_value))
+
+        except ValueError:
+            print("Erreur lors de la conversion de la valeur du champ")
+
+    def adjust_slider_properties(self, parameter):
+        if parameter in parameter_ranges:
+            range_info = parameter_ranges[parameter]
+            self.global_slider.setMinimum(range_info['min'] * self.slider_precision)
+            self.global_slider.setMaximum(range_info['max'] * self.slider_precision)
+        else:
+            self.global_slider.setMinimum(0)
+            self.global_slider.setMaximum(100)
+    def update_selected_input_value(self, value):
+        float_value = value / self.slider_precision
+        if self.currently_selected_input:
+            self.currently_selected_input.setText(str(float_value))
+            self.calculate()
     def calculate(self):
 
         # Retrieve parameters from inputs
@@ -113,8 +165,6 @@ class MainGUI(QMainWindow):
         params_dict['len_core'] *= 10**-2
         params_dict['diam_core'] *= 10**-3
         params_dict['ray_spire'] *= 10**-3
-
-        params_dict['nb_spire'] = float(self.nb_spire_slider.value())
 
         print(params_dict)
 
