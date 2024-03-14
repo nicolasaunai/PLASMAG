@@ -194,3 +194,7 @@ class CalculationEngine:
         node_names = list(self.nodes.keys())
         for name in node_names:
             self.nodes[name].calculate()
+
+    def __repr__(self):
+        return f"CalculationEngine({self.nodes})"
+
