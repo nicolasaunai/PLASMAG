@@ -1,6 +1,9 @@
 import json
 
-from model import CalculationResults, InputParameters, CalculationNode
+from src.model.results import CalculationResults
+from src.model.input_parameters import InputParameters
+from src.model.node import CalculationNode
+
 
 
 class CalculationEngine:

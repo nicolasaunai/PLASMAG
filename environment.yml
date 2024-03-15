@@ -1,4 +1,4 @@
-name: PLASMAG_dev_2
+name: PLASMAG
 channels:
   - conda-forge
   - defaults

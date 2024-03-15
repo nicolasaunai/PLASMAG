@@ -1,13 +1,13 @@
-from model import InputParameters
-from model.engine import CalculationEngine
-from model.strategies.strategy_lib.Nz import AnalyticalNzStrategy
-from model.strategies.strategy_lib.capacitance import AnalyticalCapacitanceStrategy
-from model.strategies.strategy_lib.frequency import FrequencyVectorStrategy
-from model.strategies.strategy_lib.impedance import AnalyticalImpedanceStrategy
-from model.strategies.strategy_lib.inductance import AnalyticalInductanceStrategy
-from model.strategies.strategy_lib.lambda_strategy import AnalyticalLambdaStrategy
-from model.strategies.strategy_lib.mu_app import AnalyticalMu_appStrategy
-from model.strategies.strategy_lib.resistance import AnalyticalResistanceStrategy
+from src.model.input_parameters import InputParameters
+from src.model.engine import CalculationEngine
+from src.model.strategies.strategy_lib.Nz import AnalyticalNzStrategy
+from src.model.strategies.strategy_lib.capacitance import AnalyticalCapacitanceStrategy
+from src.model.strategies.strategy_lib.frequency import FrequencyVectorStrategy
+from src.model.strategies.strategy_lib.impedance import AnalyticalImpedanceStrategy
+from src.model.strategies.strategy_lib.inductance import AnalyticalInductanceStrategy
+from src.model.strategies.strategy_lib.lambda_strategy import AnalyticalLambdaStrategy
+from src.model.strategies.strategy_lib.mu_app import AnalyticalMu_appStrategy
+from src.model.strategies.strategy_lib.resistance import AnalyticalResistanceStrategy
 
 
 class CalculationController:

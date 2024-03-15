@@ -1,6 +1,6 @@
 import numpy as np
-from model import InputParameters
-from model.strategies import CalculationStrategy
+from src.model.input_parameters import InputParameters
+from src.model.strategies import CalculationStrategy
 from scipy.constants import mu_0
 
 

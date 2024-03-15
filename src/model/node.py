@@ -1,4 +1,4 @@
-from model.strategies import CalculationStrategy
+from src.model.strategies import CalculationStrategy
 
 
 class CalculationNode:

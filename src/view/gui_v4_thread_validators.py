@@ -3,13 +3,12 @@ import sys
 from PyQt6.QtCore import Qt, QTimer, QThread
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider
-from PyQt6.QtWidgets import QFormLayout
+
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from controler.controller import CalculationController
-from model import InputParameters
-from model.engine import CalculationEngine
+from src.controler.controller import CalculationController
+
 
 # Default parameter values and ranges for the GUI
 # TODO: Move this to a separate file
