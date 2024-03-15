@@ -1,6 +1,6 @@
 import sys
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider
 from PyQt6.QtWidgets import QFormLayout
@@ -94,6 +94,11 @@ class MainGUI(QMainWindow):
         self.main_layout = QVBoxLayout()
         self.central_widget.setLayout(self.main_layout)
 
+        self.calculation_timer = QTimer(self)
+        self.calculation_timer.setInterval(100)  # Delay in milliseconds
+        self.calculation_timer.setSingleShot(True)
+        self.calculation_timer.timeout.connect(self.delayed_calculate)
+
         # Grid layout for parameters
         self.grid_layout = QGridLayout()
         self.init_parameters_input()
@@ -122,6 +127,13 @@ class MainGUI(QMainWindow):
             line_edit.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
 
         self.slider_precision = 100
+
+    def delayed_calculate(self):
+        """
+        Performs calculation after a delay to avoid UI lag during slider adjustments.
+        This method is triggered by the calculation_timer's timeout signal.
+        """
+        self.calculate()
 
     def bind_slider_to_input(self, line_edit, parameter):
         """
@@ -196,7 +208,7 @@ class MainGUI(QMainWindow):
             new_value = int(coarse_value) + fine_value
 
         line_edit.setText(f"{new_value:.3f}")  # Format with 3 decimal places
-        self.calculate()
+        self.calculation_timer.start()
 
     def calculate(self):
         """

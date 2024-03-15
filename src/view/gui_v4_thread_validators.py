@@ -1,6 +1,6 @@
 import sys
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer, QThread
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider
 from PyQt6.QtWidgets import QFormLayout
@@ -55,6 +55,16 @@ parameter_ranges = {
     'nb_points_per_decade': {'min': 10, 'max': 1000},
 
 }
+
+
+class CalculationThread(QThread):
+    def __init__(self, controller):
+        super().__init__()
+        self.controller = controller
+
+    def run(self):
+        self.controller.run_calculation()
+
 class MplCanvas(FigureCanvas):
     def __init__(self):
         fig = Figure(figsize=(5, 4), dpi=100)
@@ -94,6 +104,11 @@ class MainGUI(QMainWindow):
         self.main_layout = QVBoxLayout()
         self.central_widget.setLayout(self.main_layout)
 
+        self.calculation_timer = QTimer(self)
+        self.calculation_timer.setInterval(50)  # Delay in milliseconds
+        self.calculation_timer.setSingleShot(True)
+        self.calculation_timer.timeout.connect(self.delayed_calculate)
+
         # Grid layout for parameters
         self.grid_layout = QGridLayout()
         self.init_parameters_input()
@@ -123,20 +138,38 @@ class MainGUI(QMainWindow):
 
         self.slider_precision = 100
 
+    def delayed_calculate(self):
+        """
+        Performs calculation after a delay to avoid UI lag during slider adjustments.
+        This method is triggered by the calculation_timer's timeout signal.
+        """
+        self.calculate()
+
     def bind_slider_to_input(self, line_edit, parameter):
         """
-                Binds the coarse and fine sliders to a selected input field, allowing for parameter adjustment.
-                It sets the sliders' ranges based on the parameter's defined range and adjusts them to reflect the input's current value.
+        Binds the coarse and fine sliders to a selected input field, allowing for parameter adjustment.
+        It sets the sliders' ranges based on the parameter's defined range and adjusts them to reflect the input's current value.
 
-                Args:
-                    line_edit (QLineEdit): The QLineEdit widget representing the input field for the parameter.
-                    parameter (str): The name of the parameter associated with the input field.
+        Args:
+            line_edit (QLineEdit): The QLineEdit widget representing the input field for the parameter.
+            parameter (str): The name of the parameter associated with the input field.
 
-                This method calculates the initial positions of both sliders based on the current value of the input field
-                and adjusts the sliders to reflect both the integral and decimal parts of this value.
-                """
+        This method calculates the initial positions of both sliders based on the current value of the input field
+        and adjusts the sliders to reflect both the integral and decimal parts of this value.
+        """
         self.currently_selected_input = (line_edit, parameter)
-        value = float(line_edit.text())
+        text = line_edit.text()
+        try:
+            value = float(text)
+        except ValueError:
+            # Check if input is a valid float with scientific notation
+            try:
+                value = float(text[:-1]) if text.endswith('a') else float(text)
+            except ValueError:
+                # Invalid input, notify the user or handle as appropriate
+                print(f"Invalid input for parameter '{parameter}': '{text}'. Skipping slider binding.")
+                return
+
         range_info = parameter_ranges.get(parameter, {'min': 0, 'max': 100})
 
         # Coarse slider setup
@@ -196,42 +229,57 @@ class MainGUI(QMainWindow):
             new_value = int(coarse_value) + fine_value
 
         line_edit.setText(f"{new_value:.3f}")  # Format with 3 decimal places
-        self.calculate()
+        self.calculation_timer.start()
 
     def calculate(self):
         """
-                Gathers the current parameter values from the input fields, initiates the calculation process through the controller,
-                and triggers the plotting of the results. This function acts as the bridge between user input and the calculation logic,
-                ensuring that the most up-to-date parameters are used for each calculation.
+        Gathers the current parameter values from the input fields, initiates the calculation process through the controller,
+        and triggers the plotting of the results. This function acts as the bridge between user input and the calculation logic,
+        ensuring that the most up-to-date parameters are used for each calculation.
         """
-
         # Retrieve parameters from inputs
-        params_dict = {param: float(self.inputs[param].text()) for param in self.inputs}
-        # Convert scientific notation
-        params_dict['len_coil'] *= 10**-3
-        params_dict['kapthon_thick'] *= 10**-6
-        params_dict['insulator_thick'] *= 10**-6
-        params_dict['diam_out_mandrel'] *= 10**-3
-        params_dict['diam_wire'] *= 10**-6
-        params_dict['capa_tuning'] *= 10**-12
-        params_dict['capa_triwire'] *= 10**-12
-        params_dict['len_core'] *= 10**-2
-        params_dict['diam_core'] *= 10**-3
-        params_dict['ray_spire'] *= 10**-3
+        params_dict = {}
+        for param, line_edit in self.inputs.items():
+            text = line_edit.text()
+            try:
+                value = float(text)
+                params_dict[param] = value
+            except ValueError:
+                # Check if input is a valid float with scientific notation
+                try:
+                    value = float(text[:-1]) if text.endswith('a') else float(text)
+                    params_dict[param] = value
+                except ValueError:
+                    # Invalid input, notify the user or handle as appropriate
+                    print(f"Invalid input for parameter '{param}': '{text}'. Skipping calculation.")
+                    return
+
+        # Convert other parameters requiring scientific notation
+        params_dict['len_coil'] *= 10 ** -3
+        params_dict['kapthon_thick'] *= 10 ** -6
+        params_dict['insulator_thick'] *= 10 ** -6
+        params_dict['diam_out_mandrel'] *= 10 ** -3
+        params_dict['diam_wire'] *= 10 ** -6
+        params_dict['capa_tuning'] *= 10 ** -12
+        params_dict['capa_triwire'] *= 10 ** -12
+        params_dict['len_core'] *= 10 ** -2
+        params_dict['diam_core'] *= 10 ** -3
+        params_dict['ray_spire'] *= 10 ** -3
 
         print(params_dict)
 
         self.controller.update_parameters(params_dict)
 
-        self.controller.run_calculation()
-
-        self.plot_results()
+        # Create and start the calculation thread
+        self.calculation_thread = CalculationThread(self.controller)
+        self.calculation_thread.finished.connect(self.plot_results)
+        self.calculation_thread.start()
 
     def plot_results(self):
         """
-                Retrieves the latest calculation results and plots them on the matplotlib canvas. This function is responsible
-                for visualizing the impedance vs. frequency graph, allowing users to analyze the calculation outcomes.
-                It handles the plotting of both the current and previous calculation results, providing a comparative view.
+        Retrieves the latest calculation results and plots them on the matplotlib canvas. This function is responsible
+        for visualizing the impedance vs. frequency graph, allowing users to analyze the calculation outcomes.
+        It handles the plotting of both the current and previous calculation results, providing a comparative view.
         """
         self.canvas.axes.clear()
 
@@ -277,6 +325,28 @@ class MainGUI(QMainWindow):
         # Optionally, trigger a recalculation if you want immediate feedback on the reset values
         self.calculate()
 
+    def validate_input(self, line_edit, parameter):
+        """
+        Validates the input of a QLineEdit widget.
+        """
+        text = line_edit.text()
+        try:
+            value = float(text)
+            if parameter in parameter_ranges:
+                min_value = parameter_ranges[parameter]['min']
+                max_value = parameter_ranges[parameter]['max']
+                if min_value <= value <= max_value:
+                    # Valid input
+                    line_edit.setStyleSheet("")
+                    return
+            else:
+                # Invalid range, set default style
+                line_edit.setStyleSheet("")
+        except ValueError:
+            # Invalid float value, set background color to indicate error
+            line_edit.setStyleSheet("background-color: red")
+        except Exception as e:
+            print("Error:", e)
     def init_parameters_input(self):
         row, col = 0, 0  # Initialize grid position
 
@@ -286,6 +356,8 @@ class MainGUI(QMainWindow):
             label = QLabel(f"{parameter}:")
             line_edit = QLineEdit(str(value))
             self.inputs[parameter] = line_edit
+
+            line_edit.textChanged.connect(lambda text, le=line_edit, param=parameter: self.validate_input(le, param))
 
             self.grid_layout.addWidget(label, row, col * 2)  # Label in column 0, 2, 4, ...
             self.grid_layout.addWidget(line_edit, row, col * 2 + 1)  # LineEdit in column 1, 3, 5, ...
