@@ -3,7 +3,7 @@ import timeit
 
 from matplotlib import pyplot as plt
 
-from model import InputParameters
+from src.model.input_parameters import InputParameters
 from model.engine import CalculationEngine
 from model.strategies.strategy_lib.Nz import AnalyticalNzStrategy
 from model.strategies.strategy_lib.capacitance import AnalyticalCapacitanceStrategy

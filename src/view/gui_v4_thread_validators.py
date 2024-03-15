@@ -265,8 +265,6 @@ class MainGUI(QMainWindow):
         params_dict['diam_core'] *= 10 ** -3
         params_dict['ray_spire'] *= 10 ** -3
 
-        print(params_dict)
-
         self.controller.update_parameters(params_dict)
 
         # Create and start the calculation thread
