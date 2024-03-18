@@ -372,19 +372,20 @@ class MainGUI(QMainWindow):
         text = line_edit.text()
         try:
             value = float(text)
-            if parameter in parameter_ranges:
-                min_value = parameter_ranges[parameter]['min']
-                max_value = parameter_ranges[parameter]['max']
-                if min_value <= value <= max_value:
-                    # Valid input
-                    line_edit.setStyleSheet("")
-                    return
-            else:
-                # Invalid range, set default style
-                line_edit.setStyleSheet("")
+            range_info = parameter_ranges.get(parameter, {})
+            min_value, max_value = range_info.get('min'), range_info.get('max')
+
+            if min_value is not None and value < min_value:
+                value = min_value
+                line_edit.setText(str(min_value))
+            elif max_value is not None and value > max_value:
+                value = max_value
+                line_edit.setText(str(max_value))
+
+            line_edit.setStyleSheet("")  # Reset style to indicate valid input
         except ValueError:
-            # Invalid float value, set background color to indicate error
-            line_edit.setStyleSheet("background-color: red")
+            # Set background color to indicate error for invalid float value
+            line_edit.setStyleSheet("background-color: red;")
         except Exception as e:
             print("Error:", e)
     def init_parameters_input(self):
