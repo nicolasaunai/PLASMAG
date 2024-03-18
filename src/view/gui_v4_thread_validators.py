@@ -20,25 +20,25 @@ from qtrangeslider import QRangeSlider
 # dict parameters that is a merge of default_values and parameter_ranges
 
 input_parameters = {
-    'mu_insulator': {'default': 1, 'min': 0, 'max': 10},
-    'len_coil': {'default': 155, 'min': 1, 'max': 200},
-    'kapthon_thick': {'default': 30, 'min': 10, 'max': 300},
-    'insulator_thick': {'default': 10, 'min': 1, 'max': 100},
-    'diam_out_mandrel': {'default': 3.2, 'min': 1, 'max': 10},
-    'diam_wire': {'default': 90, 'min': 10, 'max': 300},
-    'capa_tuning': {'default': 1, 'min': 1, 'max': 1000},
-    'capa_triwire': {'default': 150, 'min': 10, 'max': 1000},
-    'len_core': {'default': 20, 'min': 1, 'max': 200},
-    'diam_core': {'default': 3.2, 'min': 1, 'max': 100},
-    'mu_r': {'default': 100000, 'min': 1, 'max': 1000000},
-    'nb_spire': {'default': 12100, 'min': 1000, 'max': 20000},
-    'ray_spire': {'default': 5, 'min': 1, 'max': 100},
-    'rho_whire': {'default': 1.6, 'min': 1, 'max': 10},
-    'coeff_expansion': {'default': 1, 'min': 1, 'max': 10},
+    'mu_insulator': {'default': 1, 'min': 0, 'max': 10, 'description': "Permeability of the insulator"},
+    'len_coil': {'default': 155, 'min': 1, 'max': 200,  'description': "Length of the coil"},
+    'kapthon_thick': {'default': 30, 'min': 10, 'max': 300, 'description': "Thickness of the kapthon"},
+    'insulator_thick': {'default': 10, 'min': 1, 'max': 100 , 'description': "Thickness of the insulator"},
+    'diam_out_mandrel': {'default': 3.2, 'min': 1, 'max': 10 , 'description': "Diameter of the outer mandrel"},
+    'diam_wire': {'default': 90, 'min': 10, 'max': 300 , 'description': "Diameter of the wire"},
+    'capa_tuning': {'default': 1, 'min': 1, 'max': 1000 , 'description': "Tuning capacitance"},
+    'capa_triwire': {'default': 150, 'min': 10, 'max': 1000 , 'description': "Triwire capacitance"},
+    'len_core': {'default': 20, 'min': 1, 'max': 200 , 'description': "Length of the core"},
+    'diam_core': {'default': 3.2, 'min': 1, 'max': 100 , 'description': "Diameter of the core"},
+    'mu_r': {'default': 100000, 'min': 1, 'max': 1000000 , 'description': "Relative permeability"},
+    'nb_spire': {'default': 12100, 'min': 1000, 'max': 20000 , 'description': "Number of spires"},
+    'ray_spire': {'default': 5, 'min': 1, 'max': 100 , 'description': "Radius of the spire"},
+    'rho_whire': {'default': 1.6, 'min': 1, 'max': 10 , 'description': "Resistivity of the wire"},
+    'coeff_expansion': {'default': 1, 'min': 1, 'max': 10 , 'description': "Expansion coefficient"},
 
-    'f_start': {'default': 1, 'min': 1, 'max': 1000},
-    'f_stop': {'default': 100000, 'min': 1000, 'max': 100000},
-    'nb_points_per_decade': {'default': 100, 'min': 10, 'max': 1000},
+    'f_start': {'default': 1, 'min': 1, 'max': 1000, 'description': "Start frequency"},
+    'f_stop': {'default': 100000, 'min': 1000, 'max': 100000, 'description': "Stop frequency"},
+    'nb_points_per_decade': {'default': 100, 'min': 10, 'max': 1000, 'description': "Number of points per decade"},
 
 }
 
@@ -380,6 +380,7 @@ class MainGUI(QMainWindow):
 
             label = QLabel(f"{parameter}:")
             line_edit = QLineEdit(str(attrs['default']))
+            line_edit.setToolTip(attrs['description'])
             self.inputs[parameter] = line_edit
 
             line_edit.textChanged.connect(lambda text, le=line_edit, param=parameter: self.validate_input(le, param))
