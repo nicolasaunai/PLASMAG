@@ -4,6 +4,7 @@ import numpy as np
 from PyQt6.QtCore import Qt, QTimer, QThread
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider, QCheckBox
+from isort.profiles import attrs
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -14,47 +15,31 @@ from qtrangeslider import QRangeSlider
 
 # Default parameter values and ranges for the GUI
 # TODO: Move this to a separate file
-default_values = {
-    'mu_insulator': 1,
-    'len_coil': 155,  # Represented as an integer for simplicity; the actual value is 155*10**-3
-    'kapthon_thick': 30,  # The same applies here and for other parameters with scientific notation
-    'insulator_thick': 10,
-    'diam_out_mandrel': 3.2,
-    'diam_wire': 90,
-    'capa_tuning': 1,
-    'capa_triwire': 150,
-    'len_core': 20,
-    'diam_core': 3.2,
-    'mu_r': 100000,
-    'nb_spire': 12100,
-    'ray_spire': 5,
-    'rho_whire': 1.6,
-    'coeff_expansion': 1,
 
-    'f_start': 1,
-    'f_stop': 100000,
-    'nb_points_per_decade': 100,
 
-}
+# dict parameters that is a merge of default_values and parameter_ranges
 
-parameter_ranges = {
-    'nb_spire': {'min': 1000, 'max': 20000}, # Each key-value pair represents a parameter and its range (min, max)
-    'len_coil': {'min': 1, 'max': 200},
-    'kapthon_thick': {'min': 10, 'max': 300},
-    'insulator_thick': {'min': 1, 'max': 100},
-    'diam_out_mandrel': {'min': 1, 'max': 10},
-    'diam_wire': {'min': 10, 'max': 300},
-    'capa_tuning': {'min': 1, 'max': 1000},
-    'capa_triwire': {'min': 10, 'max': 1000},
-    'len_core': {'min': 1, 'max': 200},
-    'diam_core': {'min': 1, 'max': 100},
-    'ray_spire': {'min': 1, 'max': 100},
-    'rho_whire': {'min': 1, 'max': 10},
-    'coeff_expansion': {'min': 1, 'max': 10},
+input_parameters = {
+    'mu_insulator': {'default': 1, 'min': 0, 'max': 10},
+    'len_coil': {'default': 155, 'min': 1, 'max': 200},
+    'kapthon_thick': {'default': 30, 'min': 10, 'max': 300},
+    'insulator_thick': {'default': 10, 'min': 1, 'max': 100},
+    'diam_out_mandrel': {'default': 3.2, 'min': 1, 'max': 10},
+    'diam_wire': {'default': 90, 'min': 10, 'max': 300},
+    'capa_tuning': {'default': 1, 'min': 1, 'max': 1000},
+    'capa_triwire': {'default': 150, 'min': 10, 'max': 1000},
+    'len_core': {'default': 20, 'min': 1, 'max': 200},
+    'diam_core': {'default': 3.2, 'min': 1, 'max': 100},
+    'mu_r': {'default': 100000, 'min': 1, 'max': 1000000},
+    'nb_spire': {'default': 12100, 'min': 1000, 'max': 20000},
+    'ray_spire': {'default': 5, 'min': 1, 'max': 100},
+    'rho_whire': {'default': 1.6, 'min': 1, 'max': 10},
+    'coeff_expansion': {'default': 1, 'min': 1, 'max': 10},
 
-    'f_start': {'min': 1, 'max': 1000},
-    'f_stop': {'min': 1000, 'max': 100000},
-    'nb_points_per_decade': {'min': 10, 'max': 1000},
+    'f_start': {'default': 1, 'min': 1, 'max': 1000},
+    'f_stop': {'default': 100000, 'min': 1000, 'max': 100000},
+    'nb_points_per_decade': {'default': 100, 'min': 10, 'max': 1000},
+
 }
 
 
@@ -94,6 +79,9 @@ class MainGUI(QMainWindow):
         super().__init__()
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 800, 950)  # Adjust size as needed
+
+        self.f_start_value = input_parameters['f_start']['default']
+        self.f_stop_value = input_parameters['f_stop']['default']
 
         self.currently_selected_input = None
         self.init_ui()
@@ -162,23 +150,19 @@ class MainGUI(QMainWindow):
         log_range = log_max - log_min
         scale = (max_val - min_val) / log_range
         return min_val + scale * (np.log10(log_value) - log_min)
+
     def update_frequency_range(self, value):
         linear_start, linear_stop = value
         slider_min = self.frequency_range_slider.minimum()
         slider_max = self.frequency_range_slider.maximum()
-        freq_min = parameter_ranges['f_start']['min']
-        freq_max = parameter_ranges['f_stop']['max']
-        f_start = self.log_scale(linear_start, slider_min, slider_max, freq_min, freq_max)
-        f_stop = self.log_scale(linear_stop, slider_min, slider_max, freq_min, freq_max)
+        freq_min = input_parameters['f_start']['min']
+        freq_max = input_parameters['f_stop']['max']
+        self.f_start_value = self.log_scale(linear_start, slider_min, slider_max, freq_min, freq_max)
+        self.f_stop_value = self.log_scale(linear_stop, slider_min, slider_max, freq_min, freq_max)
 
-        # Update UI or calculations based on f_start and f_stop
-        self.frequency_values_label.setText(f"Frequency Start: {f_start}, Frequency Stop: {f_stop}")
-
-        default_values['f_start'] = f_start
-        default_values['f_stop'] = f_stop
-
+        self.frequency_values_label.setText(
+            f"Frequency Start: {self.f_start_value}, Frequency Stop: {self.f_stop_value}")
         self.calculation_timer.start()
-
 
     def delayed_calculate(self):
         """
@@ -212,7 +196,7 @@ class MainGUI(QMainWindow):
                 print(f"Invalid input for parameter '{parameter}': '{text}'. Skipping slider binding.")
                 return
 
-        range_info = parameter_ranges.get(parameter, {'min': 0, 'max': 100})
+        range_info = input_parameters.get(parameter, {'min': 0, 'max': 100})
 
         # Coarse slider setup
         self.global_slider_coarse.setMinimum(range_info['min'])
@@ -238,8 +222,8 @@ class MainGUI(QMainWindow):
                     The coarse slider is adjusted to cover the entire range of the parameter, allowing for broad adjustments.
                     The fine slider is designed to fine-tune the parameter value, focusing on the decimal part for precise control.
         """
-        if parameter in parameter_ranges:
-            range_info = parameter_ranges[parameter]
+        if parameter in input_parameters:
+            range_info = input_parameters[parameter]
             self.global_slider_coarse.setMinimum(range_info['min'] * self.slider_precision)
             self.global_slider_coarse.setMaximum(range_info['max'] * self.slider_precision)
         else:
@@ -281,8 +265,8 @@ class MainGUI(QMainWindow):
         """
         # Retrieve parameters from inputs
         params_dict = {
-            'f_start': default_values['f_start'],
-            'f_stop': default_values['f_stop'],
+            'f_start': self.f_start_value,
+            'f_stop': self.f_stop_value
         }
         for param, line_edit in self.inputs.items():
             text = line_edit.text()
@@ -354,8 +338,8 @@ class MainGUI(QMainWindow):
         """
         # Reset each input field to its default value
         for parameter, line_edit in self.inputs.items():
-            if parameter in default_values:
-                default_value = str(default_values[parameter])
+            if parameter in input_parameters:
+                default_value = str(input_parameters[parameter]['default'])
                 line_edit.setText(default_value)
 
                 # If the currently selected input is being reset, update the sliders too
@@ -372,43 +356,43 @@ class MainGUI(QMainWindow):
         text = line_edit.text()
         try:
             value = float(text)
-            range_info = parameter_ranges.get(parameter, {})
-            min_value, max_value = range_info.get('min'), range_info.get('max')
-
-            if min_value is not None and value < min_value:
-                value = min_value
-                line_edit.setText(str(min_value))
-            elif max_value is not None and value > max_value:
-                value = max_value
-                line_edit.setText(str(max_value))
-
-            line_edit.setStyleSheet("")  # Reset style to indicate valid input
+            attrs = input_parameters[parameter]
+            if value < attrs['min']:
+                value = attrs['min']
+            elif value > attrs['max']:
+                value = attrs['max']
+            line_edit.setText(str(value))
+            line_edit.setStyleSheet("")
         except ValueError:
-            # Set background color to indicate error for invalid float value
             line_edit.setStyleSheet("background-color: red;")
+
         except Exception as e:
             print("Error:", e)
+
     def init_parameters_input(self):
-        row, col = 0, 0  # Initialize grid position
+        row = 0  # Initialize grid row
 
         # Dynamically create input fields for parameters
         self.inputs = {}
-        for idx, (parameter, value) in enumerate(default_values.items()):
-            if parameter in ['f_start', 'f_stop']:  # Skip creating inputs for f_start and f_stop
+        for idx, (parameter, attrs) in enumerate(input_parameters.items()):
+            if parameter in ['f_start', 'f_stop']:
                 continue
 
             label = QLabel(f"{parameter}:")
-            line_edit = QLineEdit(str(value))
+            line_edit = QLineEdit(str(attrs['default']))
             self.inputs[parameter] = line_edit
 
             line_edit.textChanged.connect(lambda text, le=line_edit, param=parameter: self.validate_input(le, param))
 
-            self.grid_layout.addWidget(label, row, col * 2)  # Label in column 0, 2, 4, ...
-            self.grid_layout.addWidget(line_edit, row, col * 2 + 1)  # LineEdit in column 1, 3, 5, ...
+            # Calculate row and column positions
+            col = (idx % 2) * 2  # This alternates between 0 for the first column and 2 for the second column
+            if idx % 2 == 0 and idx != 0:
+                row += 1  # Only increment row when filling the second column
 
-            if idx % 2 == 1:  # Move to the next row after every two inputs
-                row += 1
-            col = (col + 1) % 2  # Toggle between 0 and 1 to switch columns
+            # Add label and line edit to the grid.
+            # Labels in column 'col', line edits in column 'col+1'
+            self.grid_layout.addWidget(label, row, col)  # Add label
+            self.grid_layout.addWidget(line_edit, row, col + 1)  # Add line edit
 
         self.main_layout.addLayout(self.grid_layout)
 
@@ -436,14 +420,14 @@ class MainGUI(QMainWindow):
 
         self.frequency_range_slider = QRangeSlider()
         self.frequency_range_slider.setOrientation(Qt.Orientation.Horizontal)
-        self.frequency_range_slider.setMinimum(parameter_ranges['f_start']['min'])
-        self.frequency_range_slider.setMaximum(parameter_ranges['f_stop']['max'])
-        self.frequency_range_slider.setValue((default_values['f_start'], default_values['f_stop']))
+        self.frequency_range_slider.setMinimum(input_parameters['f_start']['min'])
+        self.frequency_range_slider.setMaximum(input_parameters['f_stop']['max'])
+        self.frequency_range_slider.setValue((input_parameters['f_start']["default"], input_parameters['f_stop']["default"]))
         self.frequency_range_slider.valueChanged.connect(self.update_frequency_range)
         self.grid_layout.addWidget(self.frequency_range_slider, 2, 1)
 
         self.frequency_values_label = QLabel(
-            f"Fréquence de départ : {default_values['f_start']}, Fréquence de fin : {default_values['f_stop']}")
+            f"F_start : {input_parameters['f_start']['default']}, F_stop: {input_parameters['f_stop']['default']}")
         self.grid_layout.addWidget(self.frequency_values_label, 3, 0, 1, 2)
 
         # Set the spacing between elements in the grid
