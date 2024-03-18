@@ -1,13 +1,15 @@
 import sys
 
+import numpy as np
 from PyQt6.QtCore import Qt, QTimer, QThread
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
-    QGridLayout, QSlider
+    QGridLayout, QSlider, QCheckBox
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 from src.controler.controller import CalculationController
+from qtrangeslider import QRangeSlider
 
 
 # Default parameter values and ranges for the GUI
@@ -32,6 +34,7 @@ default_values = {
     'f_start': 1,
     'f_stop': 100000,
     'nb_points_per_decade': 100,
+
 }
 
 parameter_ranges = {
@@ -52,7 +55,6 @@ parameter_ranges = {
     'f_start': {'min': 1, 'max': 1000},
     'f_stop': {'min': 1000, 'max': 100000},
     'nb_points_per_decade': {'min': 10, 'max': 1000},
-
 }
 
 
@@ -122,7 +124,13 @@ class MainGUI(QMainWindow):
         self.calculate_btn.clicked.connect(self.calculate)
         self.main_layout.addWidget(self.calculate_btn)
 
+
         self.init_sliders()
+
+        self.show_old_curve_checkbox = QCheckBox("Show Old Curve")
+        self.main_layout.addWidget(self.show_old_curve_checkbox)
+
+        self.show_old_curve_checkbox.stateChanged.connect(self.trigger_replot)
 
         # Plot area
         self.canvas = MplCanvas()
@@ -136,6 +144,41 @@ class MainGUI(QMainWindow):
             line_edit.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
 
         self.slider_precision = 100
+
+    def trigger_replot(self):
+        # Trigger the plot update
+        self.plot_results()
+
+    def log_scale(self, value, min_val, max_val, min_log, max_log):
+        """Converts a linear slider value to a logarithmic frequency value."""
+        log_range = np.log10(max_log) - np.log10(min_log)
+        scale = log_range / (max_val - min_val)
+        return np.power(10, np.log10(min_log) + scale * (value - min_val))
+
+    def linear_scale(self, log_value, min_val, max_val, min_log, max_log):
+        """Converts a logarithmic frequency value back to a linear slider value."""
+        log_min = np.log10(min_log)
+        log_max = np.log10(max_log)
+        log_range = log_max - log_min
+        scale = (max_val - min_val) / log_range
+        return min_val + scale * (np.log10(log_value) - log_min)
+    def update_frequency_range(self, value):
+        linear_start, linear_stop = value
+        slider_min = self.frequency_range_slider.minimum()
+        slider_max = self.frequency_range_slider.maximum()
+        freq_min = parameter_ranges['f_start']['min']
+        freq_max = parameter_ranges['f_stop']['max']
+        f_start = self.log_scale(linear_start, slider_min, slider_max, freq_min, freq_max)
+        f_stop = self.log_scale(linear_stop, slider_min, slider_max, freq_min, freq_max)
+
+        # Update UI or calculations based on f_start and f_stop
+        self.frequency_values_label.setText(f"Frequency Start: {f_start}, Frequency Stop: {f_stop}")
+
+        default_values['f_start'] = f_start
+        default_values['f_stop'] = f_stop
+
+        self.calculation_timer.start()
+
 
     def delayed_calculate(self):
         """
@@ -237,7 +280,10 @@ class MainGUI(QMainWindow):
         ensuring that the most up-to-date parameters are used for each calculation.
         """
         # Retrieve parameters from inputs
-        params_dict = {}
+        params_dict = {
+            'f_start': default_values['f_start'],
+            'f_stop': default_values['f_stop'],
+        }
         for param, line_edit in self.inputs.items():
             text = line_edit.text()
             try:
@@ -281,28 +327,25 @@ class MainGUI(QMainWindow):
         self.canvas.axes.clear()
 
         impedance_results = self.controller.engine.current_output_data.get_result('impedance')
-        old_impedance_results = self.controller.engine.old_output_data.get_result('impedance')
-
         if impedance_results is not None:
             impedance = impedance_results[:, 1]
             frequencies = impedance_results[:, 0]
-            self.canvas.axes.plot(frequencies, impedance)
+            self.canvas.axes.plot(frequencies, impedance, label='Current Impedance')
             self.canvas.axes.set_xlabel('Frequency (Hz)')
             self.canvas.axes.set_ylabel('Impedance')
             self.canvas.axes.set_xscale('log')
             self.canvas.axes.set_yscale('log')
             self.canvas.axes.grid(which='both')
-            # set legend
-            self.canvas.axes.legend(['New Impedance'])
-            self.canvas.draw()
 
-        if old_impedance_results is not None:
-            old_impedance = old_impedance_results[:, 1]
-            old_frequencies = old_impedance_results[:, 0]
-            self.canvas.axes.plot(old_frequencies, old_impedance)
-            # set legend
-            self.canvas.axes.legend(['Old Impedance'])
-            self.canvas.draw()
+        if self.show_old_curve_checkbox.isChecked():
+            old_impedance_results = self.controller.engine.old_output_data.get_result('impedance')
+            if old_impedance_results is not None:
+                old_impedance = old_impedance_results[:, 1]
+                old_frequencies = old_impedance_results[:, 0]
+                self.canvas.axes.plot(old_frequencies, old_impedance, label='Old Impedance')
+
+        self.canvas.axes.legend()
+        self.canvas.draw()
 
     def reset_parameters(self):
         """
@@ -350,6 +393,9 @@ class MainGUI(QMainWindow):
         # Dynamically create input fields for parameters
         self.inputs = {}
         for idx, (parameter, value) in enumerate(default_values.items()):
+            if parameter in ['f_start', 'f_stop']:  # Skip creating inputs for f_start and f_stop
+                continue
+
             label = QLabel(f"{parameter}:")
             line_edit = QLineEdit(str(value))
             self.inputs[parameter] = line_edit
@@ -382,6 +428,22 @@ class MainGUI(QMainWindow):
         self.global_slider_fine = QSlider(Qt.Orientation.Horizontal)
         self.global_slider_fine.valueChanged.connect(lambda: self.update_selected_input_value('fine'))
         self.grid_layout.addWidget(self.global_slider_fine, 1, 1)
+
+        frequency_range_slider_label = QLabel("Plage de fréquence :")
+        self.grid_layout.addWidget(frequency_range_slider_label, 2,
+                                   0)
+
+        self.frequency_range_slider = QRangeSlider()
+        self.frequency_range_slider.setOrientation(Qt.Orientation.Horizontal)
+        self.frequency_range_slider.setMinimum(parameter_ranges['f_start']['min'])
+        self.frequency_range_slider.setMaximum(parameter_ranges['f_stop']['max'])
+        self.frequency_range_slider.setValue((default_values['f_start'], default_values['f_stop']))
+        self.frequency_range_slider.valueChanged.connect(self.update_frequency_range)
+        self.grid_layout.addWidget(self.frequency_range_slider, 2, 1)
+
+        self.frequency_values_label = QLabel(
+            f"Fréquence de départ : {default_values['f_start']}, Fréquence de fin : {default_values['f_stop']}")
+        self.grid_layout.addWidget(self.frequency_values_label, 3, 0, 1, 2)
 
         # Set the spacing between elements in the grid
         self.grid_layout.setSpacing(5)

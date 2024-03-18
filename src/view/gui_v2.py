@@ -8,7 +8,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 from controler.controller import CalculationController
-from model import InputParameters
+from src.model.input_parameters import InputParameters
 from model.engine import CalculationEngine
 
 # Default parameter values and ranges for the GUI
