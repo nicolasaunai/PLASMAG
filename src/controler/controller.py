@@ -29,15 +29,27 @@ class CalculationController:
         if params_dict:
             self.update_parameters(params_dict)
 
+        self.is_data_ready = False
+
     def update_parameters(self, params_dict):
         self.params = params_dict
         new_parameters = InputParameters(self.params)
         self.engine.update_parameters(new_parameters)
+
     def run_calculation(self):
         self.engine.run_calculations()
-        impedance_results = self.engine.current_output_data.get_result('impedance')
-        if impedance_results is not None:
-            impedance = impedance_results[:, 1]
-            frequencies = impedance_results[:, 0]
-            return impedance, frequencies
-        return None, None
+        self.is_data_ready = True
+        return self.get_current_results()
+
+    def get_current_results(self):
+
+        if not self.is_data_ready:
+            return None
+        else:
+            return self.engine.current_output_data.results
+
+    def get_old_results(self):
+        return self.engine.old_output_data.results
+
+
+

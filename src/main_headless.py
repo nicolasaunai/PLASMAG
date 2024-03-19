@@ -1,4 +1,4 @@
-from model import InputParameters
+from src.model.input_parameters import InputParameters
 from model.engine import CalculationEngine
 from model.strategies.strategy_lib.Nz import AnalyticalNzStrategy
 from model.strategies.strategy_lib.capacitance import AnalyticalCapacitanceStrategy
@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
         'f_start' : 1,
         'f_stop' : 100000,
-        'nb_points_per_decade' : 100,
+        'nb_points_per_decade' : 2,
     }
 
     print(parameters_dict)
