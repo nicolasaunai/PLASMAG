@@ -1,4 +1,5 @@
 import sys
+import warnings
 
 import numpy as np
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
@@ -107,6 +108,52 @@ input_parameters = {
         'description': "Expansion coefficient",
         'input_unit': '', 'target_unit': ''
     },
+    'gain_1': {
+        'default': 0, 'min': -100, 'max': 100,
+        'description': "Gain of the first stage in dBV",
+        'input_unit': '', 'target_unit': ''
+    },
+
+    'stage_1_cutting_freq': {
+        'default': 100, 'min': 1, 'max': 1000000,
+        'description': "Cutting frequency of the first stage in Hertz",
+        'input_unit': 'hertz', 'target_unit': 'hertz'
+    },
+
+    'gain_1_linear': {
+        'default': 1, 'min': 0, 'max': 10,
+        'description': "Gain of the first stage in linear",
+        'input_unit': '', 'target_unit': ''
+    },
+    'gain_2_linear': {
+        'default': 1.259, 'min': 0, 'max': 10,
+        'description': "Gain of the second stage in linear",
+        'input_unit': '', 'target_unit': ''
+    },
+
+    'gain_2': {
+        'default': 2, 'min': -100, 'max': 100,
+        'description': "Gain of the second stage in dBV",
+        'input_unit': '', 'target_unit': ''
+    },
+    'stage_2_cutting_freq': {
+        'default': 20000, 'min': 1, 'max': 1000000,
+        'description': "Cutting frequency of the second stage in Hertz",
+        'input_unit': 'hertz', 'target_unit': 'hertz'
+    },
+
+    'feedback_resistance': {
+        'default': 1000, 'min': 1, 'max': 100000,
+        'description': "Feedback resistance in Ohms",
+        'input_unit': 'ohm', 'target_unit': 'ohm'
+    },
+    'mutual_inductance': {
+        'default': 1, 'min': 0, 'max': 1,
+        'description': "Mutual inductance",
+        'input_unit': '', 'target_unit': ''
+    },
+
+
     'f_start': {
         'default': 1, 'min': 1, 'max': 1000,
         'description': "Start frequency in Hertz",
@@ -139,7 +186,6 @@ class CalculationThread(QThread):
             self.calculation_finished.emit(calculation_result)  # Emit result
         except Exception as e:
             self.calculation_failed.emit(str(e))  # Emit error message
-            self.calculation_failed.emit(str(e))  # Emit error messagec
 
 class MplCanvas(FigureCanvas):
     def __init__(self):
@@ -535,39 +581,49 @@ class MainGUI(QMainWindow):
 
             canvas.axes.clear()
 
-            # Plot current data
-            if selected_key == 'impedance' or selected_key == 'frequency_vector':
-                x_data = current_results.get('frequency_vector', [])
-                y_data = current_data[:, 1] if current_data.ndim > 1 else current_data
-                canvas.axes.plot(x_data, y_data, label='Current ' + selected_key)
-            else:
+            if current_data is not None:
                 if np.isscalar(current_data):
-                    canvas.axes.axhline(y=current_data, color='r', linestyle='-', label='Current ' + selected_key)
-                else:
-                    x_data = current_data[:, 0] if current_data.ndim > 1 else range(len(current_data))
-                    y_data = current_data[:, 1] if current_data.ndim > 1 else current_data
+                    # Scalar data plotting
+                    canvas.axes.axhline(y=current_data, color='r', label='Current ' + selected_key)
+                elif current_data.ndim == 1:
+                    # 1D Vector data plotting
+                    canvas.axes.plot(current_data, label='Current ' + selected_key)
+                elif current_data.ndim > 1:
+                    # 2D Vector data plotting (assumes [X, Y] format)
+                    x_data = current_data[:, 0]
+                    y_data = current_data[:, 1]
                     canvas.axes.plot(x_data, y_data, label='Current ' + selected_key)
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("error", UserWarning)  # Convert warnings to errors
+                        try:
+                            canvas.axes.set_yscale('log')
+                        except UserWarning:
+                            canvas.axes.set_yscale('linear')
 
-            # Plot old data if checkbox is checked and old data exists
+                # Repeat plotting logic for old data if checkbox is checked
             if checkbox.isChecked() and old_results:
                 old_data = old_results.get(selected_key)
                 if old_data is not None:
-                    if selected_key == 'impedance' or selected_key == 'frequency_vector':
-                        old_x_data = old_results.get('frequency_vector', [])
-                        old_y_data = old_data[:, 1] if old_data.ndim > 1 else old_data
+                    if np.isscalar(old_data):
+                        canvas.axes.axhline(y=old_data, color='g', label='Old ' + selected_key)
+                    elif old_data.ndim == 1:
+                        canvas.axes.plot(old_data, label='Old ' + selected_key, linestyle='--')
+                    elif old_data.ndim > 1:
+                        old_x_data = old_data[:, 0]
+                        old_y_data = old_data[:, 1]
                         canvas.axes.plot(old_x_data, old_y_data, label='Old ' + selected_key, linestyle='--')
-                    else:
-                        if np.isscalar(old_data):
-                            canvas.axes.axhline(y=old_data, color='g', linestyle='--', label='Old ' + selected_key)
-                        else:
-                            old_x_data = old_data[:, 0] if old_data.ndim > 1 else range(len(old_data))
-                            old_y_data = old_data[:, 1] if old_data.ndim > 1 else old_data
-                            canvas.axes.plot(old_x_data, old_y_data, label='Old ' + selected_key, linestyle='--')
+
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("error", UserWarning)  # Convert warnings to errors
+                            try:
+                                canvas.axes.set_yscale('log')
+                            except UserWarning:
+                                canvas.axes.set_yscale('linear')
+
 
             canvas.axes.set_xlabel('Frequency (Hz)')
             canvas.axes.set_ylabel(selected_key)
             canvas.axes.set_xscale('log')
-            canvas.axes.set_yscale('log')
             canvas.axes.grid(which='both')
             canvas.axes.legend()
             canvas.draw()

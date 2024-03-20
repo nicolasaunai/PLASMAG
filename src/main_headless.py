@@ -1,3 +1,5 @@
+from model.strategies.strategy_lib.TF_ASIC import TF_ASIC_Stage_1_Strategy, TF_ASIC_Stage_2_Strategy, TF_ASIC_Strategy, \
+    TF_ASIC_Stage_1_Strategy_linear, TF_ASIC_Stage_2_Strategy_linear, TF_ASIC_Strategy_linear
 from src.model.input_parameters import InputParameters
 from model.engine import CalculationEngine
 from model.strategies.strategy_lib.Nz import AnalyticalNzStrategy
@@ -29,9 +31,18 @@ if __name__ == "__main__":
         'rho_whire' : 1.6,
         'coeff_expansion' : 1,
 
+        'gain_1' : 0, # Gain of the first stage in  linear
+        'stage_1_cutting_freq' : 100, # Cutting frequency of the first stage in Hz
+
+        'gain_1_linear' : 1, # Gain of the first stage in dB
+        'gain_2_linear' : 1.259, # Gain of the second stage in dB
+
+        'gain_2' : 2, # Gain of the second stage in dB
+        'stage_2_cutting_freq' : 20000, # Cutting frequency of the second stage in Hz
+
         'f_start' : 1,
         'f_stop' : 100000,
-        'nb_points_per_decade' : 2,
+        'nb_points_per_decade' : 100,
     }
 
     print(parameters_dict)
@@ -54,6 +65,17 @@ if __name__ == "__main__":
 
     calculation_engine.add_or_update_node('impedance', AnalyticalImpedanceStrategy())
 
+    calculation_engine.add_or_update_node('TF_ASIC_Stage_1', TF_ASIC_Stage_1_Strategy())
+    calculation_engine.add_or_update_node('TF_ASIC_Stage_2', TF_ASIC_Stage_2_Strategy())
+
+    calculation_engine.add_or_update_node('TF_ASIC', TF_ASIC_Strategy())
+
+    calculation_engine.add_or_update_node('TF_ASIC_Stage_1_linear', TF_ASIC_Stage_1_Strategy_linear())
+    calculation_engine.add_or_update_node('TF_ASIC_Stage_2_linear', TF_ASIC_Stage_2_Strategy_linear())
+
+    calculation_engine.add_or_update_node('TF_ASIC_linear', TF_ASIC_Strategy_linear())
+
+
     # Run the calculations
     calculation_engine.run_calculations()
 
@@ -62,16 +84,46 @@ if __name__ == "__main__":
 
     # plot impedance vs frequency
     import matplotlib.pyplot as plt
-    impedance_freq_tensor = calculation_engine.current_output_data.results['impedance']
+    ASIC_Stage_1_TF_linear = calculation_engine.current_output_data.results['TF_ASIC_Stage_1_linear']
+    ASIC_Stage_2_TF_linear = calculation_engine.current_output_data.results['TF_ASIC_Stage_2_linear']
+    ASIC_TF_linear = calculation_engine.current_output_data.results['TF_ASIC_linear']
 
-    plt.plot(impedance_freq_tensor[:,0], impedance_freq_tensor[:,1])
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Impedance (Ohm)')
-    #show detailed grid
-    plt.grid(which='both')
+    #logarithmic scale
+    ASIC_Stage_1 = calculation_engine.current_output_data.results['TF_ASIC_Stage_1']
+    ASIC_Stage_2 = calculation_engine.current_output_data.results['TF_ASIC_Stage_2']
+    ASIC_TF = calculation_engine.current_output_data.results['TF_ASIC']
+
+    #two subplots stacked vertically
+    fig, axs = plt.subplots(2, 1, figsize=(10, 10))
+    fig.suptitle('TF ASIC')
+    axs[0].plot(ASIC_Stage_1_TF_linear[:,0], ASIC_Stage_1_TF_linear[:,1], label='Stage 1')
+    axs[0].plot(ASIC_Stage_2_TF_linear[:,0], ASIC_Stage_2_TF_linear[:,1], label='Stage 2')
+    axs[0].plot(ASIC_TF_linear[:,0], ASIC_TF_linear[:,1], label='ASIC')
+
+
+    axs[0].set_xscale('log')
+    axs[0].set_yscale('log')
+    axs[0].grid("both")
+    axs[0].set_title('Linear scale')
+    axs[0].set_xlabel('Frequency [Hz]')
+    axs[0].set_ylabel('Gain linear')
+    axs[0].legend()
+
+    axs[1].plot(ASIC_Stage_1[:,0], ASIC_Stage_1[:,1], label='Stage 1')
+    axs[1].plot(ASIC_Stage_2[:,0], ASIC_Stage_2[:,1], label='Stage 2')
+    axs[1].plot(ASIC_TF[:,0], ASIC_TF[:,1], label='ASIC')
+
+    axs[1].set_title('Logarithmic scale')
+    axs[1].set_xscale('log')
+    axs[1].grid("both")
+    axs[1].set_xlabel('Frequency [Hz]')
+    axs[1].set_ylabel('Gain [dB]')
+    axs[1].legend()
+
     plt.show()
+
+
+
 
 
 

@@ -1,3 +1,5 @@
+from model.strategies.strategy_lib.TF_ASIC import TF_ASIC_Stage_1_Strategy, TF_ASIC_Stage_2_Strategy, TF_ASIC_Strategy, \
+    TF_ASIC_Stage_1_Strategy_linear, TF_ASIC_Stage_2_Strategy_linear, TF_ASIC_Strategy_linear
 from src.model.input_parameters import InputParameters
 from src.model.engine import CalculationEngine
 from src.model.strategies.strategy_lib.Nz import AnalyticalNzStrategy
@@ -24,6 +26,16 @@ class CalculationController:
         self.engine.add_or_update_node('capacitance', AnalyticalCapacitanceStrategy())
 
         self.engine.add_or_update_node('impedance', AnalyticalImpedanceStrategy())
+
+        self.engine.add_or_update_node('TF_ASIC_Stage_1', TF_ASIC_Stage_1_Strategy())
+        self.engine.add_or_update_node('TF_ASIC_Stage_2', TF_ASIC_Stage_2_Strategy())
+
+        self.engine.add_or_update_node('TF_ASIC', TF_ASIC_Strategy())
+
+        self.engine.add_or_update_node('TF_ASIC_Stage_1_linear', TF_ASIC_Stage_1_Strategy_linear())
+        self.engine.add_or_update_node('TF_ASIC_Stage_2_linear', TF_ASIC_Stage_2_Strategy_linear())
+
+        self.engine.add_or_update_node('TF_ASIC_linear', TF_ASIC_Strategy_linear())
 
         self.params = None
         if params_dict:

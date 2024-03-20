@@ -15,8 +15,8 @@ class AnalyticalImpedanceStrategy(CalculationStrategy):
 
         vectorized_impedance = np.vectorize(self.calculate_impedance)
         impedance_values = vectorized_impedance(R, L, C, frequency_vector)
-
-        frequency_impedance_tensor = np.column_stack((frequency_vector, impedance_values))
+        unit_type = np.array(['linear'] * len(frequency_vector))
+        frequency_impedance_tensor = np.column_stack((frequency_vector, impedance_values, unit_type))
         return frequency_impedance_tensor
     def calculate_impedance(self, R, L, C, f):
         impedance_num = (R ** 2) + (L * 2 * np.pi * f) ** 2
