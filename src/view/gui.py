@@ -121,12 +121,12 @@ input_parameters = {
     },
 
     'gain_1_linear': {
-        'default': 1, 'min': 0, 'max': 10,
+        'default': 1, 'min': 1, 'max': 1000,
         'description': "Gain of the first stage in linear",
         'input_unit': '', 'target_unit': ''
     },
     'gain_2_linear': {
-        'default': 1.259, 'min': 0, 'max': 10,
+        'default': 1, 'min': 1, 'max': 1000,
         'description': "Gain of the second stage in linear",
         'input_unit': '', 'target_unit': ''
     },
@@ -155,7 +155,7 @@ input_parameters = {
 
 
     'f_start': {
-        'default': 1, 'min': 1, 'max': 1000,
+        'default': 0.1, 'min': 0.1, 'max': 1000,
         'description': "Start frequency in Hertz",
         'input_unit': 'hertz', 'target_unit': 'hertz'
     },
@@ -169,6 +169,12 @@ input_parameters = {
         'description': "Number of points per decade",
         'input_unit': '', 'target_unit': ''
     },
+    'nb_spire_2': {
+        'default': 1000, 'min': 1, 'max': 10000,
+        'description': "Number of spires",
+        'input_unit': '', 'target_unit': ''
+    },
+
 }
 
 

@@ -1,4 +1,7 @@
-from model.strategies.strategy_lib.TF_ASIC import TF_ASIC_Stage_1_Strategy, TF_ASIC_Stage_2_Strategy, TF_ASIC_Strategy, \
+from src.model.strategies.strategy_lib.CLTF import CLTF_Strategy_Non_Filtered
+from src.model.strategies.strategy_lib.OLTF import OLTF_Strategy_Non_Filtered, OLTF_Strategy_Filtered
+from src.model.strategies.strategy_lib.TF_ASIC import TF_ASIC_Stage_1_Strategy, TF_ASIC_Stage_2_Strategy, \
+    TF_ASIC_Strategy, \
     TF_ASIC_Stage_1_Strategy_linear, TF_ASIC_Stage_2_Strategy_linear, TF_ASIC_Strategy_linear
 from src.model.input_parameters import InputParameters
 from src.model.engine import CalculationEngine
@@ -13,7 +16,7 @@ from src.model.strategies.strategy_lib.resistance import AnalyticalResistanceStr
 
 
 class CalculationController:
-    def __init__(self, params_dict = None):
+    def __init__(self, params_dict=None):
 
         self.engine = CalculationEngine()
 
@@ -36,6 +39,11 @@ class CalculationController:
         self.engine.add_or_update_node('TF_ASIC_Stage_2_linear', TF_ASIC_Stage_2_Strategy_linear())
 
         self.engine.add_or_update_node('TF_ASIC_linear', TF_ASIC_Strategy_linear())
+
+        self.engine.add_or_update_node('OLTF_Non_filtered', OLTF_Strategy_Non_Filtered())
+        self.engine.add_or_update_node('OLTF_Filtered', OLTF_Strategy_Filtered())
+
+        # self.engine.add_or_update_node('CLTF_Non_filtered', CLTF_Strategy_Non_Filtered())
 
         self.params = None
         if params_dict:
@@ -62,6 +70,3 @@ class CalculationController:
 
     def get_old_results(self):
         return self.engine.old_output_data.results
-
-
-
