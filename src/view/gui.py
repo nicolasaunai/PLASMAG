@@ -108,15 +108,16 @@ input_parameters = {
         'description': "Expansion coefficient",
         'input_unit': '', 'target_unit': ''
     },
-    'gain_1': {
-        'default': 0, 'min': -100, 'max': 100,
-        'description': "Gain of the first stage in dBV",
-        'input_unit': '', 'target_unit': ''
-    },
 
     'stage_1_cutting_freq': {
         'default': 100, 'min': 1, 'max': 1000000,
         'description': "Cutting frequency of the first stage in Hertz",
+        'input_unit': 'hertz', 'target_unit': 'hertz'
+    },
+
+    'stage_2_cutting_freq': {
+        'default': 20000, 'min': 1, 'max': 1000000,
+        'description': "Cutting frequency of the second stage in Hertz",
         'input_unit': 'hertz', 'target_unit': 'hertz'
     },
 
@@ -131,22 +132,13 @@ input_parameters = {
         'input_unit': '', 'target_unit': ''
     },
 
-    'gain_2': {
-        'default': 2, 'min': -100, 'max': 100,
-        'description': "Gain of the second stage in dBV",
-        'input_unit': '', 'target_unit': ''
-    },
-    'stage_2_cutting_freq': {
-        'default': 20000, 'min': 1, 'max': 1000000,
-        'description': "Cutting frequency of the second stage in Hertz",
-        'input_unit': 'hertz', 'target_unit': 'hertz'
-    },
 
     'feedback_resistance': {
         'default': 1000, 'min': 1, 'max': 100000,
         'description': "Feedback resistance in Ohms",
         'input_unit': 'ohm', 'target_unit': 'ohm'
     },
+
     'mutual_inductance': {
         'default': 1, 'min': 0, 'max': 1,
         'description': "Mutual inductance",
@@ -169,11 +161,7 @@ input_parameters = {
         'description': "Number of points per decade",
         'input_unit': '', 'target_unit': ''
     },
-    'nb_spire_2': {
-        'default': 1000, 'min': 1, 'max': 10000,
-        'description': "Number of spires",
-        'input_unit': '', 'target_unit': ''
-    },
+
 
 }
 
@@ -584,16 +572,18 @@ class MainGUI(QMainWindow):
                 continue
 
             current_data = current_results.get(selected_key)
+            frequency_vector = current_results.get('frequency_vector')
 
             canvas.axes.clear()
 
             if current_data is not None:
                 if np.isscalar(current_data):
                     # Scalar data plotting
-                    canvas.axes.axhline(y=current_data, color='r', label='Current ' + selected_key)
+                    y_values = np.full_like(frequency_vector, current_data)
+                    canvas.axes.plot(frequency_vector, y_values, 'r', label='Current ' + selected_key)
                 elif current_data.ndim == 1:
                     # 1D Vector data plotting
-                    canvas.axes.plot(current_data, label='Current ' + selected_key)
+                    canvas.axes.plot(frequency_vector, current_data, label='Current ' + selected_key)
                 elif current_data.ndim > 1:
                     # 2D Vector data plotting (assumes [X, Y] format)
                     x_data = current_data[:, 0]
@@ -609,11 +599,13 @@ class MainGUI(QMainWindow):
                 # Repeat plotting logic for old data if checkbox is checked
             if checkbox.isChecked() and old_results:
                 old_data = old_results.get(selected_key)
+                old_frequency_vector = old_results.get('frequency_vector')
                 if old_data is not None:
                     if np.isscalar(old_data):
-                        canvas.axes.axhline(y=old_data, color='g', label='Old ' + selected_key)
+                        y_values = np.full_like(old_frequency_vector, old_data)
+                        canvas.axes.plot(old_frequency_vector, y_values, 'g', label='Old ' + selected_key, linestyle='--')
                     elif old_data.ndim == 1:
-                        canvas.axes.plot(old_data, label='Old ' + selected_key, linestyle='--')
+                        canvas.axes.plot(old_frequency_vector, old_data, label='Old ' + selected_key, linestyle='--')
                     elif old_data.ndim > 1:
                         old_x_data = old_data[:, 0]
                         old_y_data = old_data[:, 1]
@@ -706,8 +698,6 @@ class MainGUI(QMainWindow):
 
         except Exception as e:
             print("Error validating input:", e)
-
-
 
 def load_stylesheet(file_path):
     with open(file_path, "r") as file:
