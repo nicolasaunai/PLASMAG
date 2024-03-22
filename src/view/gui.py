@@ -32,7 +32,7 @@ def convert_unit(value, from_unit, to_unit):
 
 # dict parameters that is a merge of default_values and parameter_ranges
 
-input_parameters = {
+input_parameters3 = {
     'mu_insulator': {
         'default': 1, 'min': 0, 'max': 10,
         'description': "Permeability of the insulator",
@@ -165,7 +165,7 @@ input_parameters = {
 
 }
 
-input_parameters_2 = {
+input_parameters = {
     "CORE" : {
 'mu_insulator': {
         'default': 1, 'min': 0, 'max': 10,
@@ -356,8 +356,8 @@ class MainGUI(QMainWindow):
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 2560, 1440)  # Adjust size as needed
 
-        self.f_start_value = input_parameters['f_start']['default']
-        self.f_stop_value = input_parameters['f_stop']['default']
+        self.f_start_value = input_parameters["misc"]['f_start']['default']
+        self.f_stop_value = input_parameters["misc"]['f_stop']['default']
 
         self.currently_selected_input = None
         self.init_ui()
@@ -367,7 +367,7 @@ class MainGUI(QMainWindow):
     def init_parameters_input(self):
         self.inputs = {}
 
-        for section_name, section_parameters in input_parameters_2.items():
+        for section_name, section_parameters in input_parameters.items():
             section_widget = QWidget()
             section_layout = QGridLayout()
             section_widget.setLayout(section_layout)
@@ -425,14 +425,14 @@ class MainGUI(QMainWindow):
 
         self.frequency_range_slider = QRangeSlider()
         self.frequency_range_slider.setOrientation(Qt.Orientation.Horizontal)
-        self.frequency_range_slider.setMinimum(input_parameters['f_start']['min'])
-        self.frequency_range_slider.setMaximum(input_parameters['f_stop']['max'])
-        self.frequency_range_slider.setValue((input_parameters['f_start']["default"], input_parameters['f_stop']["default"]))
+        self.frequency_range_slider.setMinimum(input_parameters["misc"]['f_start']['min'])
+        self.frequency_range_slider.setMaximum(input_parameters["misc"]['f_stop']['max'])
+        self.frequency_range_slider.setValue((input_parameters["misc"]['f_start']["default"], input_parameters["misc"]['f_stop']["default"]))
         self.frequency_range_slider.valueChanged.connect(self.update_frequency_range)
         self.grid_layout.addWidget(self.frequency_range_slider, 2, 1)
 
         self.frequency_values_label = QLabel(
-            f"F_start : {input_parameters['f_start']['default']}, F_stop: {input_parameters['f_stop']['default']}")
+            f"F_start : {input_parameters['misc']['f_start']['default']}, F_stop: {input_parameters['misc']['f_stop']['default']}")
         self.grid_layout.addWidget(self.frequency_values_label, 3, 0, 1, 2)
 
         # Set the spacing between elements in the grid
@@ -556,8 +556,8 @@ class MainGUI(QMainWindow):
         linear_start, linear_stop = value
         slider_min = self.frequency_range_slider.minimum()
         slider_max = self.frequency_range_slider.maximum()
-        freq_min = input_parameters['f_start']['min']
-        freq_max = input_parameters['f_stop']['max']
+        freq_min = input_parameters['misc']['f_start']['min']
+        freq_max = input_parameters['misc']['f_stop']['max']
         self.f_start_value = self.log_scale(linear_start, slider_min, slider_max, freq_min, freq_max)
         self.f_stop_value = self.log_scale(linear_stop, slider_min, slider_max, freq_min, freq_max)
 
@@ -667,41 +667,37 @@ class MainGUI(QMainWindow):
         """
         # Retrieve parameters from inputs and convert units where necessary
         params_dict = {}
-        for param, attrs in input_parameters.items():
-            if param in self.inputs:  # Check if param has a corresponding QLineEdit
-                text = self.inputs[param].text()
-                try:
-                    value = float(text)
+        for category, parameters in input_parameters.items():
+            for param, attrs in parameters.items():
+                # Cas spécial pour f_start et f_stop qui ne nécessitent pas d'entrée utilisateur directe
+                if param in ['f_start', 'f_stop']:
+                    params_dict[param] = getattr(self, f"{param}_value")
+                    continue
 
+                if param in self.inputs:
+                    text = self.inputs[param].text()
+                    try:
+                        value = float(text)
+                        # Convertir les unités si nécessaire
+                        input_unit = attrs.get('input_unit', '')
+                        target_unit = attrs.get('target_unit', '')
+                        if input_unit and target_unit:
+                            value_converted = convert_unit(value, input_unit, target_unit)
+                        else:
+                            value_converted = value
+                        params_dict[param] = value_converted
+                    except ValueError:
+                        print(f"Invalid input for parameter '{param}': '{text}'. Skipping calculation.")
+                        return
 
-                    # Convert units if required
-                    input_unit = attrs.get('input_unit', '')
-                    target_unit = attrs.get('target_unit', '')
-
-                    # Perform unit conversion if both input and target units are provided
-                    if input_unit and target_unit:
-                        value_converted = convert_unit(value, input_unit, target_unit)
-                    else:
-                        value_converted = value
-                    params_dict[param] = value_converted
-
-
-                except ValueError:
-                    print(f"Invalid input for parameter '{param}': '{text}'. Skipping calculation.")
-                    return
-            elif param in ['f_start', 'f_stop']:  # Directly use the values for f_start and f_stop
-                params_dict[param] = getattr(self, f"{param}_value")
-
-        # Example of using converted values (assuming you have a controller method setup)
-        # This is where you would typically use params_dict with converted values for calculations
+            # Passer params_dict au contrôleur pour la mise à jour et le calcul
         if hasattr(self.controller, 'update_parameters'):
             self.controller.update_parameters(params_dict)
 
+            # Lancer le thread de calcul
         self.calculation_thread = CalculationThread(self.controller)
         self.calculation_thread.calculation_finished.connect(self.on_calculation_finished)
-
-        self.calculation_thread.calculation_failed.connect(
-            self.display_error)
+        self.calculation_thread.calculation_failed.connect(self.display_error)
         self.calculation_thread.start()
 
     def on_calculation_finished(self, calculation_results):

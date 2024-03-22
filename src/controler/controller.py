@@ -1,4 +1,5 @@
-from src.model.strategies.strategy_lib.CLTF import CLTF_Strategy_Non_Filtered, CLTF_Strategy_Filtered
+from src.model.strategies.strategy_lib.CLTF import CLTF_Strategy_Non_Filtered, CLTF_Strategy_Filtered, \
+    CLTF_Strategy_Non_Filtered_legacy
 from src.model.strategies.strategy_lib.OLTF import OLTF_Strategy_Non_Filtered, OLTF_Strategy_Filtered
 from src.model.strategies.strategy_lib.TF_ASIC import TF_ASIC_Stage_1_Strategy_linear, TF_ASIC_Stage_2_Strategy_linear, TF_ASIC_Strategy_linear
 from src.model.input_parameters import InputParameters
@@ -39,6 +40,9 @@ class CalculationController:
 
         self.engine.add_or_update_node('CLTF_Non_filtered', CLTF_Strategy_Non_Filtered())
         self.engine.add_or_update_node('CLTF_Filtered', CLTF_Strategy_Filtered())
+
+
+        self.engine.add_or_update_node('CLTF_Strategy_Non_Filtered_legacy', CLTF_Strategy_Non_Filtered_legacy())
 
 
         self.params = None
