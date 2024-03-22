@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
-    QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox
+    QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea
 from isort.profiles import attrs
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -165,6 +165,152 @@ input_parameters = {
 
 }
 
+input_parameters_2 = {
+    "CORE" : {
+'mu_insulator': {
+        'default': 1, 'min': 0, 'max': 10,
+        'description': "Permeability of the insulator",
+        'input_unit': '', 'target_unit': ''
+    },
+    'kapthon_thick': {
+        'default': 30, 'min': 10, 'max': 300,
+        'description': "Thickness of the kapthon in micrometers",
+        'input_unit': 'micrometer', 'target_unit': 'meter'
+    },
+    'insulator_thick': {
+        'default': 10, 'min': 1, 'max': 100,
+        'description': "Thickness of the insulator in micrometers",
+        'input_unit': 'micrometer', 'target_unit': 'meter'
+    },
+    'diam_out_mandrel': {
+        'default': 3.2, 'min': 1, 'max': 10,
+        'description': "Diameter of the outer mandrel in millimeters",
+        'input_unit': 'millimeter', 'target_unit': 'meter'
+    },
+    'len_core': {
+        'default': 20, 'min': 1, 'max': 200,
+        'description': "Length of the core in centimeters",
+        'input_unit': 'centimeter', 'target_unit': 'meter'
+    },
+    'diam_core': {
+        'default': 3.2, 'min': 1, 'max': 100,
+        'description': "Diameter of the core in millimeters",
+        'input_unit': 'millimeter', 'target_unit': 'meter'
+    },
+    },
+
+    "COIL" :
+        {
+'mu_r': {
+        'default': 100000, 'min': 1, 'max': 1000000,
+        'description': "Relative permeability",
+        'input_unit': '', 'target_unit': ''
+    },
+            'len_coil': {
+                'default': 155, 'min': 1, 'max': 200,
+                'description': "Length of the coil in millimeters",
+                'input_unit': 'millimeter', 'target_unit': 'meter'
+            },
+    'nb_spire': {
+        'default': 12100, 'min': 1000, 'max': 20000,
+        'description': "Number of spires",
+        'input_unit': '', 'target_unit': ''
+    },
+    'ray_spire': {
+        'default': 5, 'min': 1, 'max': 100,
+        'description': "Radius of the spire in millimeters",
+        'input_unit': 'millimeter', 'target_unit': 'meter'
+    },
+    'rho_whire': {
+        'default': 1.6, 'min': 1, 'max': 10,
+        'description': "Resistivity of the wire",
+        'input_unit': '', 'target_unit': ''
+    },
+    'coeff_expansion': {
+        'default': 1, 'min': 1, 'max': 10,
+        'description': "Expansion coefficient",
+        'input_unit': '', 'target_unit': ''
+    },
+    'diam_wire': {
+        'default': 90, 'min': 10, 'max': 300,
+        'description': "Diameter of the wire in micrometers",
+        'input_unit': 'micrometer', 'target_unit': 'meter'
+    },
+    'capa_tuning': {
+        'default': 1, 'min': 1, 'max': 1000,
+        'description': "Tuning capacitance in picofarads",
+        'input_unit': 'picofarad', 'target_unit': 'farad'
+    },
+    'capa_triwire': {
+        'default': 150, 'min': 10, 'max': 1000,
+        'description': "Triwire capacitance in picofarads",
+        'input_unit': 'picofarad', 'target_unit': 'farad'
+    },
+        },
+
+
+
+
+    'ASIC' : {
+'stage_1_cutting_freq': {
+        'default': 100, 'min': 1, 'max': 1000000,
+        'description': "Cutting frequency of the first stage in Hertz",
+        'input_unit': 'hertz', 'target_unit': 'hertz'
+    },
+
+    'stage_2_cutting_freq': {
+        'default': 20000, 'min': 1, 'max': 1000000,
+        'description': "Cutting frequency of the second stage in Hertz",
+        'input_unit': 'hertz', 'target_unit': 'hertz'
+    },
+
+    'gain_1_linear': {
+        'default': 1, 'min': 1, 'max': 1000,
+        'description': "Gain of the first stage in linear",
+        'input_unit': '', 'target_unit': ''
+    },
+    'gain_2_linear': {
+        'default': 1, 'min': 1, 'max': 1000,
+        'description': "Gain of the second stage in linear",
+        'input_unit': '', 'target_unit': ''
+    },
+
+    },
+
+
+
+
+
+    'misc': {
+        'mutual_inductance': {
+                'default': 1, 'min': 0, 'max': 1,
+                'description': "Mutual inductance",
+                'input_unit': '', 'target_unit': ''
+            },
+'feedback_resistance': {
+        'default': 1000, 'min': 1, 'max': 100000,
+        'description': "Feedback resistance in Ohms",
+        'input_unit': 'ohm', 'target_unit': 'ohm'
+    },
+        'f_start': {
+            'default': 0.1, 'min': 0.1, 'max': 1000,
+            'description': "Start frequency in Hertz",
+            'input_unit': 'hertz', 'target_unit': 'hertz'
+        },
+        'f_stop': {
+            'default': 100000, 'min': 1000, 'max': 100000,
+            'description': "Stop frequency in Hertz",
+            'input_unit': 'hertz', 'target_unit': 'hertz'
+        },
+        'nb_points_per_decade': {
+            'default': 100, 'min': 10, 'max': 1000,
+            'description': "Number of points per decade",
+            'input_unit': '', 'target_unit': ''
+        },
+    }
+
+}
+
 
 class CalculationThread(QThread):
     calculation_finished = pyqtSignal(object)
@@ -217,33 +363,43 @@ class MainGUI(QMainWindow):
         self.init_ui()
 
         self.showMaximized()
+
     def init_parameters_input(self):
-        row = 0  # Initialize grid row
-
-        # Dynamically create input fields for parameters
         self.inputs = {}
-        for idx, (parameter, attrs) in enumerate(input_parameters.items()):
-            if parameter in ['f_start', 'f_stop']:
-                continue
 
-            label = QLabel(f"{parameter}:")
-            line_edit = QLineEdit(str(attrs['default']))
-            line_edit.setToolTip(attrs['description'])
-            self.inputs[parameter] = line_edit
+        for section_name, section_parameters in input_parameters_2.items():
+            section_widget = QWidget()
+            section_layout = QGridLayout()
+            section_widget.setLayout(section_layout)
+            section_layout.setSpacing(10)
 
-            line_edit.textChanged.connect(lambda _, le=line_edit, param=parameter: self.validate_input(le, param))
+            section_label = QLabel(f"<b>{section_name.replace('_', ' ').capitalize()}</b>")
+            section_label.setStyleSheet("font-weight: bold; font-size: 16px")
+            section_layout.addWidget(section_label, 0, 0, 1, 2)  # Span sur 2 colonnes
 
-            # Calculate row and column positions
-            col = (idx % 2) * 2  # This alternates between 0 for the first column and 2 for the second column
-            if idx % 2 == 0 and idx != 0:
-                row += 1  # Only increment row when filling the second column
+            section_row = 1
+            for idx, (param_name, param_attrs) in enumerate(section_parameters.items()):
+                label = QLabel(f"{param_name}:")
+                line_edit = QLineEdit(str(param_attrs['default']))
+                line_edit.setToolTip(param_attrs['description'])
+                self.inputs[param_name] = line_edit
 
-            # Add label and line edit to the grid.
-            # Labels in column 'col', line edits in column 'col+1'
-            self.grid_layout.addWidget(label, row, col)  # Add label
-            self.grid_layout.addWidget(line_edit, row, col + 1)  # Add line edit
+                line_edit.textChanged.connect(lambda _, le=line_edit, param=param_name: self.validate_input(le, param))
 
-        self.params_layout.addLayout(self.grid_layout)
+                col = idx % 2 * 2
+                if idx % 2 == 0 and idx > 0:
+                    section_row += 1
+
+                section_layout.addWidget(label, section_row, col)
+                section_layout.addWidget(line_edit, section_row, col + 1)
+
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setWidget(section_widget)
+            scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding,
+                                      QSizePolicy.Policy.Preferred)
+
+            self.params_layout.addWidget(scroll_area)
 
     def init_sliders(self):
         # Create a grid layout
