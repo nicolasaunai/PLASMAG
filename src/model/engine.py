@@ -38,6 +38,15 @@ class CalculationEngine:
         self.old_output_data = None
         self.current_output_data = CalculationResults()
 
+    def count_nodes(self):
+        """
+        Returns the number of nodes in the calculation graph.
+
+        Returns:
+            int: The number of calculation nodes in the graph.
+        """
+        return len(self.nodes)
+
     def get_or_create_node(self, node_name: str) -> CalculationNode:
         """
         Retrieves an existing node by its name or creates a new one if it doesn't exist.

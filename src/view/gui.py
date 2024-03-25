@@ -509,6 +509,7 @@ class MainGUI(QMainWindow):
 
             canvas.axes.clear()
 
+
             if current_data is not None:
                 if np.isscalar(current_data):
                     # Scalar data plotting
@@ -522,6 +523,33 @@ class MainGUI(QMainWindow):
                     x_data = current_data[:, 0]
                     y_data = current_data[:, 1]
                     canvas.axes.plot(x_data, y_data, label='Current ' + selected_key)
+
+                    if "CLTF" in selected_key:
+                        if "Non_Filtered" in selected_key:
+                            oltf_key = 'OLTF_Non_filtered'
+                        else:
+                            oltf_key = 'OLTF_Filtered'
+
+
+                        oltf_data = current_results.get(oltf_key)
+                        x_data_oltf = oltf_data[:, 0]
+                        y_data_oltf = oltf_data[:, 1]
+                        canvas.axes.plot(x_data_oltf, y_data_oltf, label=oltf_key, color = 'g')
+
+                    elif "OLTF" in selected_key:
+                        if "Non_filtered" in selected_key:
+                            cltf_key = 'CLTF_Non_Filtered_legacy'
+                        else:
+                            cltf_key = 'CLTF_Filtered'
+
+
+                        oltf_data = current_results.get(cltf_key)
+                        x_data_oltf = oltf_data[:, 0]
+                        y_data_oltf = oltf_data[:, 1]
+                        canvas.axes.plot(x_data_oltf, y_data_oltf, label=cltf_key, color = 'g')
+
+
+
                     with warnings.catch_warnings():
                         warnings.simplefilter("error", UserWarning)  # Convert warnings to errors
                         try:
@@ -543,6 +571,28 @@ class MainGUI(QMainWindow):
                         old_x_data = old_data[:, 0]
                         old_y_data = old_data[:, 1]
                         canvas.axes.plot(old_x_data, old_y_data, label='Old ' + selected_key, linestyle='--')
+
+                        if "CLTF" in selected_key:
+                            if "Non_Filtered" in selected_key:
+                                oltf_key = 'OLTF_Non_filtered'
+                            else:
+                                oltf_key = 'OLTF_Filtered'
+
+                            oltf_data = old_results.get(oltf_key)
+                            x_data_oltf = oltf_data[:, 0]
+                            y_data_oltf = oltf_data[:, 1]
+                            canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old" + oltf_key, color='r',linestyle='--')
+
+                        elif "OLTF" in selected_key:
+                            if "Non_filtered" in selected_key:
+                                cltf_key = 'CLTF_Non_Filtered_legacy'
+                            else:
+                                cltf_key = 'CLTF_Filtered'
+
+                            oltf_data = old_results.get(cltf_key)
+                            x_data_oltf = oltf_data[:, 0]
+                            y_data_oltf = oltf_data[:, 1]
+                            canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old" + cltf_key, color='r', linestyle='--')
 
                         with warnings.catch_warnings():
                             warnings.simplefilter("error", UserWarning)  # Convert warnings to errors

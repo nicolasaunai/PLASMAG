@@ -3,6 +3,11 @@ import timeit
 
 from matplotlib import pyplot as plt
 
+from model.strategies.strategy_lib.CLTF import CLTF_Strategy_Non_Filtered, CLTF_Strategy_Filtered, \
+    CLTF_Strategy_Non_Filtered_legacy
+from model.strategies.strategy_lib.OLTF import OLTF_Strategy_Non_Filtered, OLTF_Strategy_Filtered
+from model.strategies.strategy_lib.TF_ASIC import TF_ASIC_Stage_1_Strategy_linear, TF_ASIC_Stage_2_Strategy_linear, \
+    TF_ASIC_Strategy_linear
 from src.model.input_parameters import InputParameters
 from model.engine import CalculationEngine
 from model.strategies.strategy_lib.Nz import AnalyticalNzStrategy
@@ -48,6 +53,12 @@ def run_impedance_calculation(f_start, f_stop, nb_points_per_decade):
         'ray_spire': 5 * 10 ** -3,
         'rho_whire': 1.6,
         'coeff_expansion': 1,
+        'stage_1_cutting_freq': 20000,
+        'stage_2_cutting_freq': 20000,
+        'gain_1_linear': 1,
+        'gain_2_linear': 1,
+        'mutual_inductance': 0.1,
+        'feedback_resistance': 1000,
     }
     parameters = InputParameters(parameters_dict)
 
@@ -63,6 +74,19 @@ def run_impedance_calculation(f_start, f_stop, nb_points_per_decade):
     calculation_engine.add_or_update_node('inductance', AnalyticalInductanceStrategy())
     calculation_engine.add_or_update_node('capacitance', AnalyticalCapacitanceStrategy())
     calculation_engine.add_or_update_node('impedance', AnalyticalImpedanceStrategy())
+
+    calculation_engine.add_or_update_node('TF_ASIC_Stage_1_linear', TF_ASIC_Stage_1_Strategy_linear())
+    calculation_engine.add_or_update_node('TF_ASIC_Stage_2_linear', TF_ASIC_Stage_2_Strategy_linear())
+
+    calculation_engine.add_or_update_node('TF_ASIC_linear', TF_ASIC_Strategy_linear())
+
+    calculation_engine.add_or_update_node('OLTF_Non_filtered', OLTF_Strategy_Non_Filtered())
+    calculation_engine.add_or_update_node('OLTF_Filtered', OLTF_Strategy_Filtered())
+
+    calculation_engine.add_or_update_node('CLTF_Non_filtered', CLTF_Strategy_Non_Filtered())
+    calculation_engine.add_or_update_node('CLTF_Filtered', CLTF_Strategy_Filtered())
+
+    calculation_engine.add_or_update_node('CLTF_Non_Filtered_legacy', CLTF_Strategy_Non_Filtered_legacy())
 
     calculation_engine.run_calculations()
 

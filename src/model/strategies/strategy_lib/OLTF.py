@@ -45,10 +45,17 @@ class OLTF_Strategy_Non_Filtered(CalculationStrategy):
 class OLTF_Strategy_Filtered(CalculationStrategy):
 
     def calculate(self, dependencies: dict, parameters: InputParameters):
-        OLTF_Non_filtered = dependencies['OLTF_Non_filtered'][:,1] # linear
-        TF_ASIC_Stage_2_linear = dependencies['TF_ASIC_Stage_2_linear'][:,1] # linear
+        OLTF_Non_filtered = 20*np.log10(dependencies['OLTF_Non_filtered'][:,1]) # linear
+        TF_ASIC_Stage_2_linear = 20*np.log10(dependencies['TF_ASIC_Stage_2_linear'][:,1]) # linear
 
-        return OLTF_Non_filtered * TF_ASIC_Stage_2_linear
+        result = (OLTF_Non_filtered + TF_ASIC_Stage_2_linear)
+
+        result = 10**(result/20)
+
+        return np.column_stack((dependencies['OLTF_Non_filtered'][:,0], result))
+
+
+
     @staticmethod
     def get_dependencies():
         return ['OLTF_Non_filtered', 'TF_ASIC_Stage_2_linear']

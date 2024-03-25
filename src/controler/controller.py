@@ -42,7 +42,7 @@ class CalculationController:
         self.engine.add_or_update_node('CLTF_Filtered', CLTF_Strategy_Filtered())
 
 
-        self.engine.add_or_update_node('CLTF_Strategy_Non_Filtered_legacy', CLTF_Strategy_Non_Filtered_legacy())
+        self.engine.add_or_update_node('CLTF_Non_Filtered_legacy', CLTF_Strategy_Non_Filtered_legacy())
 
 
         self.params = None
