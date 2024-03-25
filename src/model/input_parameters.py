@@ -16,8 +16,6 @@ class InputParameters:
         required by the calculation strategies employed in the calculation
         engine. Missing parameters may result in calculation errors or
         incomplete results.
-
-    TODO : Add a method to import/export data from/to a json file
     """
 
     def __init__(self, data: dict):

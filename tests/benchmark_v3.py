@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 import timeit
-
+from memory_profiler import memory_usage
 import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -23,10 +23,11 @@ from model.strategies.strategy_lib.mu_app import AnalyticalMu_appStrategy
 from model.strategies.strategy_lib.resistance import AnalyticalResistanceStrategy
 
 
-
+all_benchmark_results = []
+benchmarks_done = 0
 def run_benchmark_with_increasing_nodes(f_start, f_stop, nb_points_per_decade):
-    total_benchmarks = len(frequencies_ranges) * len(points_per_decade_list)
-    benchmarks_completed = 0
+    global benchmarks_done
+    benchmarks_done += 1  # Si vous avez plusieurs benchmarks dans cette fonction, ajustez cette logique.
 
     parameters_dict = {
         'f_start': f_start,
@@ -97,27 +98,35 @@ def run_benchmark_with_increasing_nodes(f_start, f_stop, nb_points_per_decade):
         # Éviter la division par zéro
         scalar_to_vector_ratio = num_scalar / max(num_vector, 1)
 
+        print("read memory")
+        mem_usage_before = memory_usage(-1, interval=0.01, timeout=0.5)
+        print("memory read")
+        print(mem_usage_before)
+
         calculation_engine = CalculationEngine()
         calculation_engine.update_parameters(InputParameters(parameters_dict))
 
         for strategy_name, strategy in current_strategies:
             calculation_engine.add_or_update_node(strategy_name, strategy)
 
+
+
         start_time = time.time()
         calculation_engine.run_calculations()
         time_taken = time.time() - start_time
 
+        # Mesure de la consommation de mémoire après le calcul
+        mem_usage_after = memory_usage(-1, interval=0.01, timeout=0.5)
+        mem_consumed = max(mem_usage_after) - max(mem_usage_before)  # Mémoire consommée en MiB
+
+
         benchmark_results.append({
             'number_of_nodes': i,
             'time_taken': time_taken,
-            'scalar_to_vector_ratio': scalar_to_vector_ratio
+            'scalar_to_vector_ratio': scalar_to_vector_ratio,
+            'memory_consumed': mem_consumed,  # Ajout de la mémoire consommée
         })
-
-    benchmarks_completed += 1
-    print(f"Completed {benchmarks_completed}/{total_benchmarks} benchmarks")
-
-
-
+    print(f"Completed benchmark for frequency range {f_start}-{f_stop} Hz with {nb_points_per_decade} points per decade.")
     return benchmark_results
 
 
@@ -139,9 +148,10 @@ log_points = np.logspace(log_start, log_stop, num=6, base=10)
 # Chaque plage commence là où la précédente s'est arrêtée, et se termine au point actuel
 frequencies_ranges = [(int(log_points[i]), int(log_points[i+1])) for i in range(len(log_points)-1)]
 
-points_per_decade_list = [20, 80,  320,  1280,  5120]
+points_per_decade_list = [20, 200,  1280,  5120, 12240]
+benchmarks_total = len(frequencies_ranges) * len(points_per_decade_list)
 
-all_benchmark_results = []
+
 
 for f_range in frequencies_ranges:
     for nb_points in points_per_decade_list:
@@ -160,37 +170,38 @@ df = pd.DataFrame(all_benchmark_results)
 # Définir les dimensions de la grille
 rows = len(frequencies_ranges)
 cols = len(points_per_decade_list)
-
-fig, axs = plt.subplots(rows, cols, figsize=(20, 10), sharex=True, sharey=True)
-fig.suptitle('Execution Time vs Number of Nodes for Various Configurations', fontsize=16)
+# Initialisation de la figure principale
+fig, axs = plt.subplots(rows, cols, figsize=(20, 10), sharex=True)
+fig.suptitle('Execution Time(s) and Memory Consumption (MiB) vs Number of Nodes for Various Configurations' , fontsize=16)
 
 for i, f_range in enumerate(frequencies_ranges):
     for j, nb_points in enumerate(points_per_decade_list):
-        ax = axs[i, j] if rows > 1 and cols > 1 else axs[max(i, j)]
-        subset = df[(df['f_start'] == f_range[0]) & (df['f_stop'] == f_range[1]) & (df['nb_points_per_decade'] == nb_points)]
-        ax.plot(subset['number_of_nodes'], subset['time_taken'], marker='o', linestyle='-', color='blue')
-        ax.set_title(f"Freq: {f_range[0]}-{f_range[1]} Hz, Points/Dec: {nb_points}")
-        ax.grid(True)
+        if rows > 1 and cols > 1:
+            ax1 = axs[i, j]
+        else:
+            ax1 = axs[max(i, j)]
+
+        # Récupération du sous-ensemble de données pour la configuration actuelle
+        subset = df[
+            (df['f_start'] == f_range[0]) & (df['f_stop'] == f_range[1]) & (df['nb_points_per_decade'] == nb_points)]
+
+        # Configuration de l'axe principal (gauche) pour le temps d'exécution
+        color = 'tab:blue'
+        ax1.set_xlabel('Number of Nodes')
+        ax1.set_ylabel('Time', color=color)
+        ax1.plot(subset['number_of_nodes'], subset['time_taken'], marker='o', linestyle='-', color=color)
+        ax1.tick_params(axis='y', labelcolor=color)
+        ax1.set_title(f"Freq: {f_range[0]}-{f_range[1]} Hz, Points/Dec: {nb_points}")
+        ax1.grid(True)
+
+        # Création de l'axe secondaire (droite) pour la mémoire consommée
+        ax2 = ax1.twinx()
+        color = 'tab:red'
+        ax2.set_ylabel('Memory', color=color)  # Préciser l'unité de mémoire
+        ax2.plot(subset['number_of_nodes'], subset['memory_consumed'], marker='x', linestyle='-', color=color)
+        ax2.tick_params(axis='y', labelcolor=color)
 
 # Ajustements pour une meilleure lisibilité
 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 plt.show()
 
-#### HEATMAP
-
-# Supposant que all_benchmark_results est une liste de dictionnaires
-# où chaque dictionnaire contient les résultats d'un benchmark
-#### df = pd.DataFrame(all_benchmark_results)
-
-# Numéroter chaque configuration
-#### d#### f['config_id'] = df.index + 1
-#### heatmap_data = df.pivot(index='config_id', columns='number_of_nodes', values='time_taken')
-
-#### heatmap_data_log = np.log(heatmap_data.replace(0, np.nan))  # Remplacer les 0 par NaN pour éviter des erreurs avec le log
-
-#### plt.figure(figsize=(12, 8))
-#### sns.heatmap(heatmap_data_log, cmap="viridis")
-#### plt.title('Log-Scale Heatmap of Execution Time')
-#### plt.ylabel('Configuration ID')
-#### plt.xlabel('Number of Nodes')
-#### plt.show()
