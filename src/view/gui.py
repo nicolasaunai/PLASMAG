@@ -379,6 +379,10 @@ class MainGUI(QMainWindow):
 
             section_row = 1
             for idx, (param_name, param_attrs) in enumerate(section_parameters.items()):
+
+                if param_name == 'f_start' or param_name == 'f_stop':
+                    continue
+
                 label = QLabel(f"{param_name}:")
                 line_edit = QLineEdit(str(param_attrs['default']))
                 line_edit.setToolTip(param_attrs['description'])
@@ -589,26 +593,38 @@ class MainGUI(QMainWindow):
         try:
             value = float(text)
         except ValueError:
-            # Check if input is a valid float with scientific notation
-            try:
-                value = float(text[:-1]) if text.endswith('a') else float(text)
-            except ValueError:
-                # Invalid input, notify the user or handle as appropriate
-                print(f"Invalid input for parameter '{parameter}': '{text}'. Skipping slider binding.")
-                return
+            # Invalid input, notify the user or handle as appropriate
+            print(f"Invalid input for parameter '{parameter}': '{text}'. Skipping slider binding.")
+            return
 
-        range_info = input_parameters.get(parameter, {'min': 0, 'max': 100})
+        # Find the parameter info from the nested structure
+        for category, parameters in input_parameters.items():
+            if parameter in parameters:
+                range_info = parameters[parameter]
+                break
+        else:
+            print(f"Parameter {parameter} not found in input_parameters.")
+            return
 
         # Coarse slider setup
         self.global_slider_coarse.setMinimum(range_info['min'])
         self.global_slider_coarse.setMaximum(range_info['max'])
-        self.global_slider_coarse.setValue(int(value))
+        slider_value = self.calculate_slider_value(value, range_info['min'], range_info['max'])
+        self.global_slider_coarse.setValue(slider_value)
 
         # Fine slider setup
         decimal_part = value - int(value)
         self.global_slider_fine.setMinimum(0)
         self.global_slider_fine.setMaximum(999)
         self.global_slider_fine.setValue(int(decimal_part * 1000))
+
+    def calculate_slider_value(self, value, min_val, max_val):
+        """
+        Converts the parameter value to a slider position, considering the parameter's range.
+        For linear parameters, it returns the value itself.
+        For logarithmic scaling, still need to adjust this method to calculate the slider position appropriately.
+        """
+        return int(value)
 
     def adjust_slider_properties(self, parameter):
         """
@@ -808,48 +824,63 @@ class MainGUI(QMainWindow):
     def reset_parameters(self):
         """
         Resets all input fields to their default values and adjusts the sliders to reflect these defaults.
-        This method provides a way to quickly revert any changes made by the user to the initial state.
+        This method iterates through all parameters across categories, reverting any changes made by the user to the default state.
         """
-        # Reset each input field to its default value
-        for parameter, line_edit in self.inputs.items():
-            if parameter in input_parameters:
-                default_value = str(input_parameters[parameter]['default'])
-                line_edit.setText(default_value)
+        # Iterate through categories and their parameters
+        for category, parameters in input_parameters.items():
+            for parameter in parameters:
+                if parameter in self.inputs:
+                    default_value = str(parameters[parameter]['default'])
+                    self.inputs[parameter].setText(default_value)
 
-                # If the currently selected input is being reset, update the sliders too
-                if self.currently_selected_input and self.currently_selected_input[1] == parameter:
-                    self.bind_slider_to_input(line_edit, parameter)
+                    # If the currently selected input is being reset, update the sliders too
+                    if self.currently_selected_input and self.currently_selected_input[1] == parameter:
+                        self.bind_slider_to_input(self.inputs[parameter], parameter)
 
         # Optionally, trigger a recalculation if you want immediate feedback on the reset values
         self.calculate()
 
     def validate_input(self, line_edit, parameter):
         """
-        Validates the input of a QLineEdit widget, ensuring it's a valid number within the specified range.
-        Sets the background to red if invalid and corrects the value if out of range.
+        Validates the input of a QLineEdit widget, ensuring it's a valid number within the specified range for the given parameter.
+        Adjusts the input value to the nearest valid value if it falls outside the allowed range and visually indicates invalid inputs.
         """
         text = line_edit.text()
+        found = False
+
+        # Search for the parameter in the nested dictionary
+        for category, parameters in input_parameters.items():
+            if parameter in parameters:
+                attrs = parameters[parameter]
+                found = True
+                break
+
+        if not found:
+            print(f"Parameter '{parameter}' not found in any category.")
+            return
+
         try:
             value = float(text)
-            min_val = input_parameters[parameter]['min']
-            max_val = input_parameters[parameter]['max']
+            min_val = attrs['min']
+            max_val = attrs['max']
 
-            # Correct the value if it's out of range
+            # Clamp the value to the nearest valid boundary if out of range
             if value < min_val:
+                print(f"Correcting '{parameter}' value {value} to minimum {min_val}.")
                 value = min_val
                 line_edit.setText(str(value))
             elif value > max_val:
+                print(f"Correcting '{parameter}' value {value} to maximum {max_val}.")
                 value = max_val
                 line_edit.setText(str(value))
 
-            # Reset the background color if input is valid
+            # Reset background color if the input is within the valid range
             line_edit.setStyleSheet("")
         except ValueError:
-            # Set the background color to red if input is invalid
+            # Indicate invalid input with a red background
             line_edit.setStyleSheet("background-color: #ffaaaa;")
+            print(f"Invalid input for '{parameter}': '{text}' is not a valid number.")
 
-        except Exception as e:
-            print("Error validating input:", e)
 
 def load_stylesheet(file_path):
     with open(file_path, "r") as file:
