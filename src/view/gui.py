@@ -1,10 +1,12 @@
+import json
+import os
 import sys
 import warnings
 
 import numpy as np
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
-    QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea
+    QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea, QFileDialog
 from isort.profiles import attrs
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -29,288 +31,6 @@ def convert_unit(value, from_unit, to_unit):
     if from_unit and to_unit:
         return (value * ureg(from_unit)).to(ureg(to_unit)).magnitude
     return value
-
-# dict parameters that is a merge of default_values and parameter_ranges
-
-input_parameters3 = {
-    'mu_insulator': {
-        'default': 1, 'min': 0, 'max': 10,
-        'description': "Permeability of the insulator",
-        'input_unit': '', 'target_unit': ''
-    },
-    'len_coil': {
-        'default': 155, 'min': 1, 'max': 200,
-        'description': "Length of the coil in millimeters",
-        'input_unit': 'millimeter', 'target_unit': 'meter'
-    },
-    'kapthon_thick': {
-        'default': 30, 'min': 10, 'max': 300,
-        'description': "Thickness of the kapthon in micrometers",
-        'input_unit': 'micrometer', 'target_unit': 'meter'
-    },
-    'insulator_thick': {
-        'default': 10, 'min': 1, 'max': 100,
-        'description': "Thickness of the insulator in micrometers",
-        'input_unit': 'micrometer', 'target_unit': 'meter'
-    },
-    'diam_out_mandrel': {
-        'default': 3.2, 'min': 1, 'max': 10,
-        'description': "Diameter of the outer mandrel in millimeters",
-        'input_unit': 'millimeter', 'target_unit': 'meter'
-    },
-    'diam_wire': {
-        'default': 90, 'min': 10, 'max': 300,
-        'description': "Diameter of the wire in micrometers",
-        'input_unit': 'micrometer', 'target_unit': 'meter'
-    },
-    'capa_tuning': {
-        'default': 1, 'min': 1, 'max': 1000,
-        'description': "Tuning capacitance in picofarads",
-        'input_unit': 'picofarad', 'target_unit': 'farad'
-    },
-    'capa_triwire': {
-        'default': 150, 'min': 10, 'max': 1000,
-        'description': "Triwire capacitance in picofarads",
-        'input_unit': 'picofarad', 'target_unit': 'farad'
-    },
-    'len_core': {
-        'default': 20, 'min': 1, 'max': 200,
-        'description': "Length of the core in centimeters",
-        'input_unit': 'centimeter', 'target_unit': 'meter'
-    },
-    'diam_core': {
-        'default': 3.2, 'min': 1, 'max': 100,
-        'description': "Diameter of the core in millimeters",
-        'input_unit': 'millimeter', 'target_unit': 'meter'
-    },
-    'mu_r': {
-        'default': 100000, 'min': 1, 'max': 1000000,
-        'description': "Relative permeability",
-        'input_unit': '', 'target_unit': ''
-    },
-    'nb_spire': {
-        'default': 12100, 'min': 1000, 'max': 20000,
-        'description': "Number of spires",
-        'input_unit': '', 'target_unit': ''
-    },
-    'ray_spire': {
-        'default': 5, 'min': 1, 'max': 100,
-        'description': "Radius of the spire in millimeters",
-        'input_unit': 'millimeter', 'target_unit': 'meter'
-    },
-    'rho_whire': {
-        'default': 1.6, 'min': 1, 'max': 10,
-        'description': "Resistivity of the wire",
-        'input_unit': '', 'target_unit': ''
-    },
-    'coeff_expansion': {
-        'default': 1, 'min': 1, 'max': 10,
-        'description': "Expansion coefficient",
-        'input_unit': '', 'target_unit': ''
-    },
-
-    'stage_1_cutting_freq': {
-        'default': 100, 'min': 1, 'max': 1000000,
-        'description': "Cutting frequency of the first stage in Hertz",
-        'input_unit': 'hertz', 'target_unit': 'hertz'
-    },
-
-    'stage_2_cutting_freq': {
-        'default': 20000, 'min': 1, 'max': 1000000,
-        'description': "Cutting frequency of the second stage in Hertz",
-        'input_unit': 'hertz', 'target_unit': 'hertz'
-    },
-
-    'gain_1_linear': {
-        'default': 1, 'min': 1, 'max': 1000,
-        'description': "Gain of the first stage in linear",
-        'input_unit': '', 'target_unit': ''
-    },
-    'gain_2_linear': {
-        'default': 1, 'min': 1, 'max': 1000,
-        'description': "Gain of the second stage in linear",
-        'input_unit': '', 'target_unit': ''
-    },
-
-
-    'feedback_resistance': {
-        'default': 1000, 'min': 1, 'max': 100000,
-        'description': "Feedback resistance in Ohms",
-        'input_unit': 'ohm', 'target_unit': 'ohm'
-    },
-
-    'mutual_inductance': {
-        'default': 1, 'min': 0, 'max': 1,
-        'description': "Mutual inductance",
-        'input_unit': '', 'target_unit': ''
-    },
-
-
-    'f_start': {
-        'default': 0.1, 'min': 0.1, 'max': 1000,
-        'description': "Start frequency in Hertz",
-        'input_unit': 'hertz', 'target_unit': 'hertz'
-    },
-    'f_stop': {
-        'default': 100000, 'min': 1000, 'max': 100000,
-        'description': "Stop frequency in Hertz",
-        'input_unit': 'hertz', 'target_unit': 'hertz'
-    },
-    'nb_points_per_decade': {
-        'default': 100, 'min': 10, 'max': 1000,
-        'description': "Number of points per decade",
-        'input_unit': '', 'target_unit': ''
-    },
-
-
-}
-
-input_parameters = {
-    "CORE" : {
-'mu_insulator': {
-        'default': 1, 'min': 0, 'max': 10,
-        'description': "Permeability of the insulator",
-        'input_unit': '', 'target_unit': ''
-    },
-    'kapthon_thick': {
-        'default': 30, 'min': 10, 'max': 300,
-        'description': "Thickness of the kapthon in micrometers",
-        'input_unit': 'micrometer', 'target_unit': 'meter'
-    },
-    'insulator_thick': {
-        'default': 10, 'min': 1, 'max': 100,
-        'description': "Thickness of the insulator in micrometers",
-        'input_unit': 'micrometer', 'target_unit': 'meter'
-    },
-    'diam_out_mandrel': {
-        'default': 3.2, 'min': 1, 'max': 10,
-        'description': "Diameter of the outer mandrel in millimeters",
-        'input_unit': 'millimeter', 'target_unit': 'meter'
-    },
-    'len_core': {
-        'default': 20, 'min': 1, 'max': 200,
-        'description': "Length of the core in centimeters",
-        'input_unit': 'centimeter', 'target_unit': 'meter'
-    },
-    'diam_core': {
-        'default': 3.2, 'min': 1, 'max': 100,
-        'description': "Diameter of the core in millimeters",
-        'input_unit': 'millimeter', 'target_unit': 'meter'
-    },
-    },
-
-    "COIL" :
-        {
-'mu_r': {
-        'default': 100000, 'min': 1, 'max': 1000000,
-        'description': "Relative permeability",
-        'input_unit': '', 'target_unit': ''
-    },
-            'len_coil': {
-                'default': 155, 'min': 1, 'max': 200,
-                'description': "Length of the coil in millimeters",
-                'input_unit': 'millimeter', 'target_unit': 'meter'
-            },
-    'nb_spire': {
-        'default': 12100, 'min': 1000, 'max': 20000,
-        'description': "Number of spires",
-        'input_unit': '', 'target_unit': ''
-    },
-    'ray_spire': {
-        'default': 5, 'min': 1, 'max': 100,
-        'description': "Radius of the spire in millimeters",
-        'input_unit': 'millimeter', 'target_unit': 'meter'
-    },
-    'rho_whire': {
-        'default': 1.6, 'min': 1, 'max': 10,
-        'description': "Resistivity of the wire",
-        'input_unit': '', 'target_unit': ''
-    },
-    'coeff_expansion': {
-        'default': 1, 'min': 1, 'max': 10,
-        'description': "Expansion coefficient",
-        'input_unit': '', 'target_unit': ''
-    },
-    'diam_wire': {
-        'default': 90, 'min': 10, 'max': 300,
-        'description': "Diameter of the wire in micrometers",
-        'input_unit': 'micrometer', 'target_unit': 'meter'
-    },
-    'capa_tuning': {
-        'default': 1, 'min': 1, 'max': 1000,
-        'description': "Tuning capacitance in picofarads",
-        'input_unit': 'picofarad', 'target_unit': 'farad'
-    },
-    'capa_triwire': {
-        'default': 150, 'min': 10, 'max': 1000,
-        'description': "Triwire capacitance in picofarads",
-        'input_unit': 'picofarad', 'target_unit': 'farad'
-    },
-        },
-
-
-
-
-    'ASIC' : {
-'stage_1_cutting_freq': {
-        'default': 100, 'min': 1, 'max': 1000000,
-        'description': "Cutting frequency of the first stage in Hertz",
-        'input_unit': 'hertz', 'target_unit': 'hertz'
-    },
-
-    'stage_2_cutting_freq': {
-        'default': 20000, 'min': 1, 'max': 1000000,
-        'description': "Cutting frequency of the second stage in Hertz",
-        'input_unit': 'hertz', 'target_unit': 'hertz'
-    },
-
-    'gain_1_linear': {
-        'default': 1, 'min': 1, 'max': 1000,
-        'description': "Gain of the first stage in linear",
-        'input_unit': '', 'target_unit': ''
-    },
-    'gain_2_linear': {
-        'default': 1, 'min': 1, 'max': 1000,
-        'description': "Gain of the second stage in linear",
-        'input_unit': '', 'target_unit': ''
-    },
-
-    },
-
-
-
-
-
-    'misc': {
-        'mutual_inductance': {
-                'default': 1, 'min': 0, 'max': 1,
-                'description': "Mutual inductance",
-                'input_unit': '', 'target_unit': ''
-            },
-'feedback_resistance': {
-        'default': 1000, 'min': 1, 'max': 100000,
-        'description': "Feedback resistance in Ohms",
-        'input_unit': 'ohm', 'target_unit': 'ohm'
-    },
-        'f_start': {
-            'default': 0.1, 'min': 0.1, 'max': 1000,
-            'description': "Start frequency in Hertz",
-            'input_unit': 'hertz', 'target_unit': 'hertz'
-        },
-        'f_stop': {
-            'default': 100000, 'min': 1000, 'max': 100000,
-            'description': "Stop frequency in Hertz",
-            'input_unit': 'hertz', 'target_unit': 'hertz'
-        },
-        'nb_points_per_decade': {
-            'default': 100, 'min': 10, 'max': 1000,
-            'description': "Number of points per decade",
-            'input_unit': '', 'target_unit': ''
-        },
-    }
-
-}
-
 
 class CalculationThread(QThread):
     calculation_finished = pyqtSignal(object)
@@ -356,18 +76,24 @@ class MainGUI(QMainWindow):
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 2560, 1440)  # Adjust size as needed
 
-        self.f_start_value = input_parameters["misc"]['f_start']['default']
-        self.f_stop_value = input_parameters["misc"]['f_stop']['default']
+
+
+        self.load_default_parameters()
+
+        self.f_start_value = self.input_parameters["misc"]['f_start']['default']
+        self.f_stop_value = self.input_parameters["misc"]['f_stop']['default']
 
         self.currently_selected_input = None
+
         self.init_ui()
+        self.init_menu()
 
         self.showMaximized()
 
     def init_parameters_input(self):
         self.inputs = {}
 
-        for section_name, section_parameters in input_parameters.items():
+        for section_name, section_parameters in self.input_parameters.items():
             section_widget = QWidget()
             section_layout = QGridLayout()
             section_widget.setLayout(section_layout)
@@ -429,14 +155,14 @@ class MainGUI(QMainWindow):
 
         self.frequency_range_slider = QRangeSlider()
         self.frequency_range_slider.setOrientation(Qt.Orientation.Horizontal)
-        self.frequency_range_slider.setMinimum(input_parameters["misc"]['f_start']['min'])
-        self.frequency_range_slider.setMaximum(input_parameters["misc"]['f_stop']['max'])
-        self.frequency_range_slider.setValue((input_parameters["misc"]['f_start']["default"], input_parameters["misc"]['f_stop']["default"]))
+        self.frequency_range_slider.setMinimum(self.input_parameters["misc"]['f_start']['min'])
+        self.frequency_range_slider.setMaximum(self.input_parameters["misc"]['f_stop']['max'])
+        self.frequency_range_slider.setValue((self.input_parameters["misc"]['f_start']["default"], self.input_parameters["misc"]['f_stop']["default"]))
         self.frequency_range_slider.valueChanged.connect(self.update_frequency_range)
         self.grid_layout.addWidget(self.frequency_range_slider, 2, 1)
 
         self.frequency_values_label = QLabel(
-            f"F_start : {input_parameters['misc']['f_start']['default']}, F_stop: {input_parameters['misc']['f_stop']['default']}")
+            f"F_start : {self.input_parameters['misc']['f_start']['default']}, F_stop: {self.input_parameters['misc']['f_stop']['default']}")
         self.grid_layout.addWidget(self.frequency_values_label, 3, 0, 1, 2)
 
         # Set the spacing between elements in the grid
@@ -444,6 +170,19 @@ class MainGUI(QMainWindow):
 
         # Add the grid layout to the main layout
         self.params_layout.addLayout(self.grid_layout)
+
+    def load_default_parameters(self):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        json_file_path = os.path.join(current_dir, '..', '..', 'data', 'default.json')
+        json_file_path = os.path.normpath(json_file_path)
+
+        try:
+            with open(json_file_path, 'r') as json_file:
+                self.input_parameters = json.load(json_file)
+        except FileNotFoundError:
+            print(f"File{json_file_path} not found.")
+        except json.JSONDecodeError:
+            print(f"Error reading : {json_file_path}.")
 
     def init_timer(self):
         self.calculation_timer = QTimer(self)
@@ -539,8 +278,34 @@ class MainGUI(QMainWindow):
 
         self.init_controller()
 
+    def init_menu(self):
+        main_menu = self.menuBar()
+        file_menu = main_menu.addMenu('&File')
 
+        export_action = file_menu.addAction('&Export Parameters')
+        export_action.triggered.connect(self.export_parameters_to_json)
 
+        import_action = file_menu.addAction('&Import Parameters')
+        import_action.triggered.connect(self.import_parameters_from_json)
+
+    def export_parameters_to_json(self):
+        # Show a save file dialog to the user
+        fileName, _ = QFileDialog.getSaveFileName(self, "Save Parameters", "", "JSON Files (*.json)")
+        if fileName:
+            # If a file name is selected, save the parameters to that file
+            with open(fileName, 'w') as json_file:
+                json.dump(self.input_parameters, json_file, indent=4)
+            print(f"Parameters exported to {fileName}")
+
+    def import_parameters_from_json(self):
+        # Show an open file dialog to the user
+        fileName, _ = QFileDialog.getOpenFileName(self, "Import Parameters", "", "JSON Files (*.json)")
+        if fileName:
+            # If a file is selected, load the parameters from that file
+            with open(fileName, 'r') as json_file:
+                self.input_parameters = json.load(json_file)
+                self.reset_parameters()  # Update the UI with the imported parameters
+            print(f"Parameters imported from {fileName}")
 
     def log_scale(self, value, min_val, max_val, min_log, max_log):
         """Converts a linear slider value to a logarithmic frequency value."""
@@ -560,8 +325,8 @@ class MainGUI(QMainWindow):
         linear_start, linear_stop = value
         slider_min = self.frequency_range_slider.minimum()
         slider_max = self.frequency_range_slider.maximum()
-        freq_min = input_parameters['misc']['f_start']['min']
-        freq_max = input_parameters['misc']['f_stop']['max']
+        freq_min = self.input_parameters['misc']['f_start']['min']
+        freq_max = self.input_parameters['misc']['f_stop']['max']
         self.f_start_value = self.log_scale(linear_start, slider_min, slider_max, freq_min, freq_max)
         self.f_stop_value = self.log_scale(linear_stop, slider_min, slider_max, freq_min, freq_max)
 
@@ -598,7 +363,7 @@ class MainGUI(QMainWindow):
             return
 
         # Find the parameter info from the nested structure
-        for category, parameters in input_parameters.items():
+        for category, parameters in self.input_parameters.items():
             if parameter in parameters:
                 range_info = parameters[parameter]
                 break
@@ -639,8 +404,8 @@ class MainGUI(QMainWindow):
                     The coarse slider is adjusted to cover the entire range of the parameter, allowing for broad adjustments.
                     The fine slider is designed to fine-tune the parameter value, focusing on the decimal part for precise control.
         """
-        if parameter in input_parameters:
-            range_info = input_parameters[parameter]
+        if parameter in self.input_parameters:
+            range_info = self.input_parameters[parameter]
             self.global_slider_coarse.setMinimum(range_info['min'] * self.slider_precision)
             self.global_slider_coarse.setMaximum(range_info['max'] * self.slider_precision)
         else:
@@ -683,7 +448,7 @@ class MainGUI(QMainWindow):
         """
         # Retrieve parameters from inputs and convert units where necessary
         params_dict = {}
-        for category, parameters in input_parameters.items():
+        for category, parameters in self.input_parameters.items():
             for param, attrs in parameters.items():
                 # Cas spécial pour f_start et f_stop qui ne nécessitent pas d'entrée utilisateur directe
                 if param in ['f_start', 'f_stop']:
@@ -827,7 +592,7 @@ class MainGUI(QMainWindow):
         This method iterates through all parameters across categories, reverting any changes made by the user to the default state.
         """
         # Iterate through categories and their parameters
-        for category, parameters in input_parameters.items():
+        for category, parameters in self.input_parameters.items():
             for parameter in parameters:
                 if parameter in self.inputs:
                     default_value = str(parameters[parameter]['default'])
@@ -849,7 +614,7 @@ class MainGUI(QMainWindow):
         found = False
 
         # Search for the parameter in the nested dictionary
-        for category, parameters in input_parameters.items():
+        for category, parameters in self.input_parameters.items():
             if parameter in parameters:
                 attrs = parameters[parameter]
                 found = True
