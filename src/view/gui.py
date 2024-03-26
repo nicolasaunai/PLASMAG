@@ -43,11 +43,10 @@ class CalculationThread(QThread):
 
     def run(self):
         try:
-            self.controller.update_parameters(self.params_dict)
-            calculation_result = self.controller.get_current_results()
-            self.calculation_finished.emit(calculation_result)
+            calculation_result = self.controller.update_parameters(self.params_dict)
+            self.calculation_finished.emit(calculation_result)  # Emit result
         except Exception as e:
-            self.calculation_failed.emit(str(e))
+            self.calculation_failed.emit(str(e))  # Emit error message
 
 class MplCanvas(FigureCanvas):
     def __init__(self):
@@ -452,7 +451,6 @@ class MainGUI(QMainWindow):
         params_dict = {}
         for category, parameters in self.input_parameters.items():
             for param, attrs in parameters.items():
-                # Cas spécial pour f_start et f_stop qui ne nécessitent pas d'entrée utilisateur directe
                 if param in ['f_start', 'f_stop']:
                     params_dict[param] = getattr(self, f"{param}_value")
                     continue
@@ -461,7 +459,6 @@ class MainGUI(QMainWindow):
                     text = self.inputs[param].text()
                     try:
                         value = float(text)
-                        # Convertir les unités si nécessaire
                         input_unit = attrs.get('input_unit', '')
                         target_unit = attrs.get('target_unit', '')
                         if input_unit and target_unit:
@@ -473,15 +470,10 @@ class MainGUI(QMainWindow):
                         print(f"Invalid input for parameter '{param}': '{text}'. Skipping calculation.")
                         return
 
-            # Passer params_dict au contrôleur pour la mise à jour et le calcul
         if hasattr(self.controller, 'update_parameters'):
             self.controller.update_parameters(params_dict)
 
-            # Lancer le thread de calcul
-        calculation_thread = CalculationThread(controller=self.controller, params_dict=params_dict)
-        calculation_thread.calculation_finished.connect(self.on_calculation_finished)
-        calculation_thread.calculation_failed.connect(self.display_error)
-        calculation_thread.start()
+        self.on_calculation_finished(self.controller.get_current_results())
 
     def on_calculation_finished(self, calculation_results):
         self.latest_results = calculation_results  # Store the latest results
@@ -500,7 +492,7 @@ class MainGUI(QMainWindow):
                 continue
 
             current_results = self.controller.get_current_results()
-            old_results = self.controller.get_old_results()  # Assume you have a method to get old results
+            old_results = self.controller.get_old_results()
 
             if current_results is None:
                 print("No current calculation results available.")
@@ -540,7 +532,7 @@ class MainGUI(QMainWindow):
 
                     elif "OLTF" in selected_key:
                         if "Non_filtered" in selected_key:
-                            cltf_key = 'CLTF_Non_Filtered_legacy'
+                            cltf_key = 'CLTF_Non_filtered'
                         else:
                             cltf_key = 'CLTF_Filtered'
 
@@ -583,11 +575,11 @@ class MainGUI(QMainWindow):
                             oltf_data = old_results.get(oltf_key)
                             x_data_oltf = oltf_data[:, 0]
                             y_data_oltf = oltf_data[:, 1]
-                            canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old" + oltf_key, color='r',linestyle='--')
+                            canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old " + oltf_key, color='r',linestyle='--')
 
                         elif "OLTF" in selected_key:
                             if "Non_filtered" in selected_key:
-                                cltf_key = 'CLTF_Non_Filtered_legacy'
+                                cltf_key = 'CLTF_Non_filtered'
                             else:
                                 cltf_key = 'CLTF_Filtered'
 

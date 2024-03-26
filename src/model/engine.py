@@ -1,4 +1,5 @@
 import json
+import copy
 
 from src.model.results import CalculationResults
 from src.model.input_parameters import InputParameters
@@ -39,6 +40,7 @@ class CalculationEngine:
         self.current_output_data = CalculationResults()
         self.inverse_dependencies = {}
         self.build_inverse_dependencies()
+        self.first_run = True
 
     def build_inverse_dependencies(self):
         self.inverse_dependencies = {}
@@ -235,25 +237,27 @@ class CalculationEngine:
         Parameters:
             new_parameters (InputParameters): The new set of parameters for subsequent calculations.
         """
+        if self.first_run:
+            self.first_run = False
+            self.current_parameters = new_parameters
+            self.run_calculations()
+
 
         changed_params = {}
 
-        # Si old_parameters existe déjà, trouver les paramètres qui ont changé
         if self.current_parameters is not None:
             for param, new_value in new_parameters.data.items():
                 old_value = self.current_parameters.data.get(param, None)
                 if new_value != old_value:
                     changed_params[param] = {'old': old_value, 'new': new_value}
 
-        #print("Updated param:", changed_params)
+        print("Updated param:", changed_params)
 
         self.old_parameters = self.current_parameters
         self.current_parameters = new_parameters
 
-
         if self.current_output_data.results:
-            self.old_output_data = self.current_output_data
-
+            self.old_output_data = copy.deepcopy(self.current_output_data)
 
         if changed_params:
             affected_nodes = self.get_affected_nodes(changed_params)
