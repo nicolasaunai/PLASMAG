@@ -60,6 +60,35 @@ class CalculationNode:
                 dependencies[dep_name] = dep_node.calculate()
         return dependencies
 
+    def find_dependent_nodes(self, visited=None, dependent_nodes=None):
+        """
+        Finds all nodes dependent on this node.
+
+        Parameters:
+            visited (set): Set of visited nodes to avoid cycles.
+            dependent_nodes (set): Set to store dependent nodes.
+
+        Returns:
+            set: Set of dependent nodes.
+        """
+        if visited is None:
+            visited = set()
+        if dependent_nodes is None:
+            dependent_nodes = set()
+
+        if self in visited:
+            return dependent_nodes
+
+        visited.add(self)
+        dependent_nodes.add(self)
+
+        # Recursively find dependent nodes
+        for dep_name in self._strategy.get_dependencies():
+            dep_node = self.engine.nodes.get(dep_name)
+            if dep_node:
+                dep_node.find_dependent_nodes(visited, dependent_nodes)
+
+        return dependent_nodes
     def calculate(self) -> any:
         """
         Calculates the value for this node based on its strategy and resolved dependencies.

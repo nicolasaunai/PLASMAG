@@ -109,6 +109,21 @@ class CalculationEngine:
 
         return dependency_tree
 
+    def find_affected_nodes(self, parameter_name):
+        affected_nodes = set()
+        affected_nodes.add(parameter_name)
+
+        def traverse_dependencies(node_name):
+            node = self.nodes.get(node_name)
+            if not node or not node._strategy:
+                return
+            for dep_name in node._strategy.get_dependencies():
+                if dep_name not in affected_nodes:
+                    affected_nodes.add(dep_name)
+                    traverse_dependencies(dep_name)
+
+        traverse_dependencies(parameter_name)
+        return list(affected_nodes)
     def check_for_cycles(self):
         """
         Performs a cycle detection in the graph of calculation nodes to prevent infinite recursion or deadlock
@@ -176,7 +191,7 @@ class CalculationEngine:
         # Switching calculation strategy requires re-calculating the node's value, it's equivalent to a change in the
         # parameters set
 
-        self.update_parameters(self.current_parameters)
+        #self.update_parameters(self.current_parameters)
 
         # Check for cycles in the graph after adding or updating a node
         self.check_for_cycles()
@@ -191,9 +206,64 @@ class CalculationEngine:
         self.old_parameters = self.current_parameters
         self.current_parameters = new_parameters
 
-        if self.current_output_data.results:
-            self.old_output_data = self.current_output_data
-        self.current_output_data = CalculationResults()
+        # Identify affected nodes
+        affected_nodes = set()
+        for node_name, node in self.nodes.items():
+            if node_name in new_parameters.data:
+                affected_nodes.add(node)
+            else:
+                for dep in node._strategy.get_dependencies():
+                    if dep in new_parameters.data:
+                        affected_nodes.add(node)
+                        break
+
+        # Recalculate affected nodes and their dependents
+        self.old_output_data = self.current_output_data
+        self.current_output_data = self.calculate_and_store_results(affected_nodes)
+
+
+    def calculate_and_store_results(self, nodes):
+        """
+        Recalculates the nodes and their dependents and stores the results.
+
+        Parameters:
+            nodes (set): The set of nodes to be recalculated.
+
+        Returns:
+            CalculationResults: The updated calculation results.
+        """
+        updated_results = CalculationResults()
+
+        # Recursively recalculate nodes and their dependencies
+        for node in nodes:
+            self.calculate_and_store_recursive(node, updated_results)
+
+        return updated_results
+
+    def calculate_and_store_recursive(self, node, updated_results):
+        """
+        Recursively calculates the node and its dependencies and stores the results.
+
+        Parameters:
+            node (CalculationNode): The node to be recalculated.
+            updated_results (CalculationResults): The updated calculation results.
+        """
+        if node.name not in updated_results.results:
+            # Resolve dependencies
+            dependencies = {}
+            for dep_name in node._strategy.get_dependencies():
+                dep_node = self.nodes.get(dep_name)
+                if dep_node:
+                    self.calculate_and_store_recursive(dep_node, updated_results)
+                    dependencies[dep_name] = updated_results.get_result(dep_name)
+
+            # Calculate node value
+            try:
+                calculated_value = node._strategy.calculate(dependencies, self.current_parameters)
+                updated_results.set_result(node.name, calculated_value)
+            except Exception as e:
+                # Handle calculation errors
+                print(f"Error calculating {node.name}: {e}")
 
     def run_calculations(self):
         """

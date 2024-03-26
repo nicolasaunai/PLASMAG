@@ -92,11 +92,10 @@ def run_impedance_calculation(f_start, f_stop, nb_points_per_decade):
 
 
 # Define benchmark parameters
-frequencies_ranges = [(1, 1000), (1, 10000), (10, 100000), (100, 1000000), (1000, 10000000),
-                        (10000, 100000000), (100000, 1000000000)
+frequencies_ranges = [(1, 1000000), (1, 10000), (10, 100000)]
 
 
-                      ]
+
 points_per_decade = [10, 20, 50, 100, 200, 500, 700, 800, 1000, 1200, 1500, 2000, 2500, 3000,
                      5000, 7000, 10000, 100000]
 number_of_runs = 5  # Number of executions to average the calculation time
@@ -119,7 +118,8 @@ for f_range in frequencies_ranges:
     plt.plot(points_for_range, times_for_range, label=f"Frequency range {f_range[0]}-{f_range[1]} Hz", marker='o')
 
 plt.xlabel('Points per decade')
-#plt.xscale('log')
+plt.xscale('log')
+plt.yscale('log')
 plt.ylabel('Average calculation time (seconds)')
 plt.title('Calculation Time vs Points per Decade for Different Frequency Ranges')
 plt.legend()

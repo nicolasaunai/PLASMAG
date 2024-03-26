@@ -1,5 +1,4 @@
-from model.strategies.strategy_lib.TF_ASIC import TF_ASIC_Stage_1_Strategy, TF_ASIC_Stage_2_Strategy, TF_ASIC_Strategy, \
-    TF_ASIC_Stage_1_Strategy_linear, TF_ASIC_Stage_2_Strategy_linear, TF_ASIC_Strategy_linear
+from src.model.strategies.strategy_lib.TF_ASIC import TF_ASIC_Stage_1_Strategy_linear, TF_ASIC_Stage_2_Strategy_linear, TF_ASIC_Strategy_linear
 from src.model.input_parameters import InputParameters
 from model.engine import CalculationEngine
 from model.strategies.strategy_lib.Nz import AnalyticalNzStrategy
@@ -65,11 +64,6 @@ if __name__ == "__main__":
 
     calculation_engine.add_or_update_node('impedance', AnalyticalImpedanceStrategy())
 
-    calculation_engine.add_or_update_node('TF_ASIC_Stage_1', TF_ASIC_Stage_1_Strategy())
-    calculation_engine.add_or_update_node('TF_ASIC_Stage_2', TF_ASIC_Stage_2_Strategy())
-
-    calculation_engine.add_or_update_node('TF_ASIC', TF_ASIC_Strategy())
-
     calculation_engine.add_or_update_node('TF_ASIC_Stage_1_linear', TF_ASIC_Stage_1_Strategy_linear())
     calculation_engine.add_or_update_node('TF_ASIC_Stage_2_linear', TF_ASIC_Stage_2_Strategy_linear())
 
@@ -88,11 +82,6 @@ if __name__ == "__main__":
     ASIC_Stage_2_TF_linear = calculation_engine.current_output_data.results['TF_ASIC_Stage_2_linear']
     ASIC_TF_linear = calculation_engine.current_output_data.results['TF_ASIC_linear']
 
-    #logarithmic scale
-    ASIC_Stage_1 = calculation_engine.current_output_data.results['TF_ASIC_Stage_1']
-    ASIC_Stage_2 = calculation_engine.current_output_data.results['TF_ASIC_Stage_2']
-    ASIC_TF = calculation_engine.current_output_data.results['TF_ASIC']
-
     #two subplots stacked vertically
     fig, axs = plt.subplots(2, 1, figsize=(10, 10))
     fig.suptitle('TF ASIC')
@@ -109,16 +98,7 @@ if __name__ == "__main__":
     axs[0].set_ylabel('Gain linear')
     axs[0].legend()
 
-    axs[1].plot(ASIC_Stage_1[:,0], ASIC_Stage_1[:,1], label='Stage 1')
-    axs[1].plot(ASIC_Stage_2[:,0], ASIC_Stage_2[:,1], label='Stage 2')
-    axs[1].plot(ASIC_TF[:,0], ASIC_TF[:,1], label='ASIC')
 
-    axs[1].set_title('Logarithmic scale')
-    axs[1].set_xscale('log')
-    axs[1].grid("both")
-    axs[1].set_xlabel('Frequency [Hz]')
-    axs[1].set_ylabel('Gain [dB]')
-    axs[1].legend()
 
     plt.show()
 
