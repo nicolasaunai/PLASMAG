@@ -36,16 +36,18 @@ class CalculationThread(QThread):
     calculation_finished = pyqtSignal(object)
     calculation_failed = pyqtSignal(str)
 
-    def __init__(self, controller):
+    def __init__(self, controller, params_dict=None):
         super().__init__()
         self.controller = controller
+        self.params_dict = params_dict
 
     def run(self):
         try:
-            calculation_result = self.controller.run_calculation()
-            self.calculation_finished.emit(calculation_result)  # Emit result
+            self.controller.update_parameters(self.params_dict)
+            calculation_result = self.controller.get_current_results()
+            self.calculation_finished.emit(calculation_result)
         except Exception as e:
-            self.calculation_failed.emit(str(e))  # Emit error message
+            self.calculation_failed.emit(str(e))
 
 class MplCanvas(FigureCanvas):
     def __init__(self):
@@ -476,10 +478,10 @@ class MainGUI(QMainWindow):
             self.controller.update_parameters(params_dict)
 
             # Lancer le thread de calcul
-        self.calculation_thread = CalculationThread(self.controller)
-        self.calculation_thread.calculation_finished.connect(self.on_calculation_finished)
-        self.calculation_thread.calculation_failed.connect(self.display_error)
-        self.calculation_thread.start()
+        calculation_thread = CalculationThread(controller=self.controller, params_dict=params_dict)
+        calculation_thread.calculation_finished.connect(self.on_calculation_finished)
+        calculation_thread.calculation_failed.connect(self.display_error)
+        calculation_thread.start()
 
     def on_calculation_finished(self, calculation_results):
         self.latest_results = calculation_results  # Store the latest results

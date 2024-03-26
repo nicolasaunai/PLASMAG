@@ -1,6 +1,6 @@
 import numpy as np
 import timeit
-
+import pandas as pd
 from matplotlib import pyplot as plt
 
 from model.strategies.strategy_lib.CLTF import CLTF_Strategy_Non_Filtered, CLTF_Strategy_Filtered, \
@@ -21,6 +21,61 @@ from model.strategies.strategy_lib.resistance import AnalyticalResistanceStrateg
 
 
 # Function to initialize and run the calculation engine
+parameters_dict = {
+        'f_start': 1,
+        'f_stop': 1000000,
+        'nb_points_per_decade': 100,
+        # Add other parameters required by the strategies
+        'mu_insulator': 1,
+        'len_coil': 155 * 10 ** -3,
+        'kapthon_thick': 30 * 10 ** -6,
+        'insulator_thick': 10 * 10 ** -6,
+        'diam_out_mandrel': 3.2 * 10 ** -3,
+        'diam_wire': 90 * 10 ** -6,
+        'capa_tuning': 1 * 10 ** -12,
+        'capa_triwire': 150 * 10 ** -12,
+        'len_core': 20 * 10 ** -2,
+        'diam_core': 3.2 * 10 ** -3,
+        'mu_r': 100000,
+        'nb_spire': 12100,
+        'ray_spire': 5 * 10 ** -3,
+        'rho_whire': 1.6,
+        'coeff_expansion': 1,
+        'stage_1_cutting_freq': 20000,
+        'stage_2_cutting_freq': 20000,
+        'gain_1_linear': 1,
+        'gain_2_linear': 1,
+        'mutual_inductance': 0.1,
+        'feedback_resistance': 1000,
+    }
+parameters = InputParameters(parameters_dict)
+
+calculation_engine = CalculationEngine()
+calculation_engine.update_parameters(parameters)
+
+# Add all necessary strategies to the engine
+calculation_engine.add_or_update_node('frequency_vector', FrequencyVectorStrategy())
+calculation_engine.add_or_update_node('resistance', AnalyticalResistanceStrategy())
+calculation_engine.add_or_update_node('Nz', AnalyticalNzStrategy())
+calculation_engine.add_or_update_node('mu_app', AnalyticalMu_appStrategy())
+calculation_engine.add_or_update_node('lambda_param', AnalyticalLambdaStrategy())
+calculation_engine.add_or_update_node('inductance', AnalyticalInductanceStrategy())
+calculation_engine.add_or_update_node('capacitance', AnalyticalCapacitanceStrategy())
+calculation_engine.add_or_update_node('impedance', AnalyticalImpedanceStrategy())
+
+calculation_engine.add_or_update_node('TF_ASIC_Stage_1_linear', TF_ASIC_Stage_1_Strategy_linear())
+calculation_engine.add_or_update_node('TF_ASIC_Stage_2_linear', TF_ASIC_Stage_2_Strategy_linear())
+
+calculation_engine.add_or_update_node('TF_ASIC_linear', TF_ASIC_Strategy_linear())
+
+calculation_engine.add_or_update_node('OLTF_Non_filtered', OLTF_Strategy_Non_Filtered())
+calculation_engine.add_or_update_node('OLTF_Filtered', OLTF_Strategy_Filtered())
+
+calculation_engine.add_or_update_node('CLTF_Non_filtered', CLTF_Strategy_Non_Filtered())
+calculation_engine.add_or_update_node('CLTF_Filtered', CLTF_Strategy_Filtered())
+
+calculation_engine.add_or_update_node('CLTF_Non_Filtered_legacy', CLTF_Strategy_Non_Filtered_legacy())
+
 def run_impedance_calculation(f_start, f_stop, nb_points_per_decade):
     """
     Initializes and executes the calculation engine for impedance calculation.
@@ -61,34 +116,7 @@ def run_impedance_calculation(f_start, f_stop, nb_points_per_decade):
         'feedback_resistance': 1000,
     }
     parameters = InputParameters(parameters_dict)
-
-    calculation_engine = CalculationEngine()
     calculation_engine.update_parameters(parameters)
-
-    # Add all necessary strategies to the engine
-    calculation_engine.add_or_update_node('frequency_vector', FrequencyVectorStrategy())
-    calculation_engine.add_or_update_node('resistance', AnalyticalResistanceStrategy())
-    calculation_engine.add_or_update_node('Nz', AnalyticalNzStrategy())
-    calculation_engine.add_or_update_node('mu_app', AnalyticalMu_appStrategy())
-    calculation_engine.add_or_update_node('lambda_param', AnalyticalLambdaStrategy())
-    calculation_engine.add_or_update_node('inductance', AnalyticalInductanceStrategy())
-    calculation_engine.add_or_update_node('capacitance', AnalyticalCapacitanceStrategy())
-    calculation_engine.add_or_update_node('impedance', AnalyticalImpedanceStrategy())
-
-    calculation_engine.add_or_update_node('TF_ASIC_Stage_1_linear', TF_ASIC_Stage_1_Strategy_linear())
-    calculation_engine.add_or_update_node('TF_ASIC_Stage_2_linear', TF_ASIC_Stage_2_Strategy_linear())
-
-    calculation_engine.add_or_update_node('TF_ASIC_linear', TF_ASIC_Strategy_linear())
-
-    calculation_engine.add_or_update_node('OLTF_Non_filtered', OLTF_Strategy_Non_Filtered())
-    calculation_engine.add_or_update_node('OLTF_Filtered', OLTF_Strategy_Filtered())
-
-    calculation_engine.add_or_update_node('CLTF_Non_filtered', CLTF_Strategy_Non_Filtered())
-    calculation_engine.add_or_update_node('CLTF_Filtered', CLTF_Strategy_Filtered())
-
-    calculation_engine.add_or_update_node('CLTF_Non_Filtered_legacy', CLTF_Strategy_Non_Filtered_legacy())
-
-    calculation_engine.run_calculations()
 
 
 # Define benchmark parameters
@@ -119,9 +147,15 @@ for f_range in frequencies_ranges:
     plt.plot(points_for_range, times_for_range, label=f"Frequency range {f_range[0]}-{f_range[1]} Hz", marker='o')
 
 plt.xlabel('Points per decade')
-#plt.xscale('log')
+plt.xscale('log')
+plt.yscale('log')
 plt.ylabel('Average calculation time (seconds)')
 plt.title('Calculation Time vs Points per Decade for Different Frequency Ranges')
 plt.legend()
 plt.grid(True)
 plt.show()
+
+df_benchmark_results = pd.DataFrame(benchmark_results)
+
+csv_file_path = 'benchmark_results_update.csv'  # Vous pouvez modifier ce chemin selon vos besoins
+df_benchmark_results.to_csv(csv_file_path, index=False)

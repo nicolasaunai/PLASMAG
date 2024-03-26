@@ -37,7 +37,11 @@ class CalculationNode:
         self.name = name
         self.engine = engine
         self._strategy = strategy
+        self.needs_recalculation = False
 
+    def mark_for_recalculation(self):
+        #print(f"Marking {self.name} for recalculation")
+        self.needs_recalculation = True
     def resolve_dependencies(self) -> dict:
         """
         Dynamically resolves and calculates the dependencies required by this node's strategy.
@@ -60,54 +64,16 @@ class CalculationNode:
                 dependencies[dep_name] = dep_node.calculate()
         return dependencies
 
-    def find_dependent_nodes(self, visited=None, dependent_nodes=None):
-        """
-        Finds all nodes dependent on this node.
-
-        Parameters:
-            visited (set): Set of visited nodes to avoid cycles.
-            dependent_nodes (set): Set to store dependent nodes.
-
-        Returns:
-            set: Set of dependent nodes.
-        """
-        if visited is None:
-            visited = set()
-        if dependent_nodes is None:
-            dependent_nodes = set()
-
-        if self in visited:
-            return dependent_nodes
-
-        visited.add(self)
-        dependent_nodes.add(self)
-
-        # Recursively find dependent nodes
-        for dep_name in self._strategy.get_dependencies():
-            dep_node = self.engine.nodes.get(dep_name)
-            if dep_node:
-                dep_node.find_dependent_nodes(visited, dependent_nodes)
-
-        return dependent_nodes
     def calculate(self) -> any:
-        """
-        Calculates the value for this node based on its strategy and resolved dependencies.
-        If the node's value has already been calculated and stored, it returns that value
-        instead of recalculating.
-
-        Returns:
-            The calculated value or the previously stored value if available.
-        """
-
-        # Check if the value has already been calculated and stored
+        # Checks if this node's result is already calculated and if recalculation is not needed
         existing_value = self.engine.current_output_data.get_result(self.name)
-        if existing_value is not None:
+        if existing_value is not None and not self.needs_recalculation:
             return existing_value
 
         # Resolve dependencies required for the calculation
         dependencies = self.resolve_dependencies()
 
-        # Perform the calculation using the strategy, if available; otherwise, use direct parameter
+        # Perform the calculation using the strategy, if available
         if self._strategy:
             try:
                 calculated_value = self._strategy.calculate(dependencies, self.engine.current_parameters)
@@ -116,14 +82,17 @@ class CalculationNode:
             except Exception as e:
                 raise Exception(f"Error calculating {self.name}: {e}")
 
-            # Store the calculated value in OutputData
+            # Store the calculated value and mark this node as not needing recalculation
             self.engine.current_output_data.set_result(self.name, calculated_value)
+            self.needs_recalculation = False
             return calculated_value
         else:
-            # If there's no strategy, return the calculated value without storing it in OutputData
-            calculated_value = self.engine.current_parameters.data.get(self.name, None)
+            # For leaf nodes, directly use the parameter value if no strategy is provided
+            calculated_value = self.engine.current_parameters.data.get(self.name)
             if calculated_value is None:
                 raise ValueError(f"Calculation for {self.name} node returned None")
+            # Even for leaf nodes, we may need to mark them as recalculated if they depend on input parameters
+            self.needs_recalculation = False
             return calculated_value
 
     def set_strategy(self, strategy):
@@ -138,4 +107,5 @@ class CalculationNode:
 
         # Invalidate the previously calculated value for this node to ensure recalculation
         self.engine.current_output_data.set_result(self.name, None)
+        self.mark_for_recalculation()
 

@@ -1,10 +1,1 @@
-{
-    "Z": {
-        "R": {
-            "N": {},
-            "Rs": {},
-            "rho": {}
-        },
-        "B": {}
-    }
-}
+{"frequency_vector": {"TF_ASIC_Stage_1_linear", "TF_ASIC_Stage_2_linear", "impedance", "TF_ASIC_linear"}, 'resistance': {'impedance'}, 'Nz': {'mu_app'}, 'mu_app': {'capacitance', 'inductance'}, 'lambda_param': {'inductance'}, 'inductance': {'impedance'}, 'capacitance': {'impedance'}, 'impedance': set(), 'TF_ASIC_Stage_1_linear': {'TF_ASIC_linear'}, 'TF_ASIC_Stage_2_linear': {'TF_ASIC_linear'}, 'TF_ASIC_linear': set(), 'f_start': {'frequency_vector'}, 'f_stop': {'frequency_vector'}, 'nb_points_per_decade': {'frequency_vector'}, 'nb_spire': {'capacitance', 'inductance', 'resistance'}, 'ray_spire': {'inductance', 'resistance'}, 'rho_whire': {'resistance'}, 'diam_core': {'Nz'}, 'len_core': {'lambda_param', 'Nz'}, 'mu_r': {'mu_app'}, 'len_coil': {'lambda_param', 'capacitance', 'inductance'}, 'mu_insulator': {'capacitance'}, 'kapthon_thick': {'capacitance'}, 'insulator_thick': {'capacitance'}, 'diam_out_mandrel': {'capacitance'}, 'diam_wire': {'capacitance'}, 'capa_tuning': {'capacitance'}, 'capa_triwire': {'capacitance'}, 'coeff_expansion': {'capacitance'}, 'gain_1_linear': {'TF_ASIC_Stage_1_linear'}, 'stage_1_cutting_freq': {'TF_ASIC_Stage_1_linear'}, 'gain_2_linear': {'TF_ASIC_Stage_2_linear'}, 'stage_2_cutting_freq': {'TF_ASIC_Stage_2_linear'}}

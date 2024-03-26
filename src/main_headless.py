@@ -1,3 +1,6 @@
+import json
+
+from model.strategies.strategy_lib.OLTF import OLTF_Strategy_Non_Filtered
 from src.model.strategies.strategy_lib.TF_ASIC import TF_ASIC_Stage_1_Strategy_linear, TF_ASIC_Stage_2_Strategy_linear, TF_ASIC_Strategy_linear
 from src.model.input_parameters import InputParameters
 from model.engine import CalculationEngine
@@ -50,7 +53,6 @@ if __name__ == "__main__":
 
     # Initialize the calculation engine with a set of parameters, including all necessary inputs for the calculations
     calculation_engine = CalculationEngine()
-    calculation_engine.update_parameters(parameters)
 
     # Add the calculation strategies to the engine
 
@@ -66,41 +68,118 @@ if __name__ == "__main__":
 
     calculation_engine.add_or_update_node('TF_ASIC_Stage_1_linear', TF_ASIC_Stage_1_Strategy_linear())
     calculation_engine.add_or_update_node('TF_ASIC_Stage_2_linear', TF_ASIC_Stage_2_Strategy_linear())
-
+    calculation_engine.add_or_update_node('OLTF_Strategy_Non_Filtered', OLTF_Strategy_Non_Filtered())
     calculation_engine.add_or_update_node('TF_ASIC_linear', TF_ASIC_Strategy_linear())
 
+    calculation_engine.build_inverse_dependencies()
 
     # Run the calculations
-    calculation_engine.run_calculations()
+    calculation_engine.update_parameters(parameters)
 
-    # Print the results
-    print(calculation_engine.current_output_data.results)
+    parameters_dict = {
+        'mu_insulator': 1,
+        'len_coil': 155 * 10 ** -3,
+        'kapthon_thick': 30 * 10 ** -6,
+        'insulator_thick': 10 * 10 ** -6,
+        'diam_out_mandrel': 3.2 * 10 ** -3,
+        'diam_wire': 90 * 10 ** -6,
+        'capa_tuning': 1 * 10 ** -12,
+        'capa_triwire': 150 * 10 ** -12,
+        'len_core': 20 * 10 ** -2,
+        'diam_core': 3.2 * 10 ** -3,
+        'mu_r': 100000,
+        'nb_spire': 12100,
+        'ray_spire': 52 * 10 ** -3,
+        'rho_whire': 1.6,
+        'coeff_expansion': 1,
 
-    # plot impedance vs frequency
-    import matplotlib.pyplot as plt
-    ASIC_Stage_1_TF_linear = calculation_engine.current_output_data.results['TF_ASIC_Stage_1_linear']
-    ASIC_Stage_2_TF_linear = calculation_engine.current_output_data.results['TF_ASIC_Stage_2_linear']
-    ASIC_TF_linear = calculation_engine.current_output_data.results['TF_ASIC_linear']
+        'gain_1': 0,  # Gain of the first stage in  linear
+        'stage_1_cutting_freq': 100,  # Cutting frequency of the first stage in Hz
 
-    #two subplots stacked vertically
-    fig, axs = plt.subplots(2, 1, figsize=(10, 10))
-    fig.suptitle('TF ASIC')
-    axs[0].plot(ASIC_Stage_1_TF_linear[:,0], ASIC_Stage_1_TF_linear[:,1], label='Stage 1')
-    axs[0].plot(ASIC_Stage_2_TF_linear[:,0], ASIC_Stage_2_TF_linear[:,1], label='Stage 2')
-    axs[0].plot(ASIC_TF_linear[:,0], ASIC_TF_linear[:,1], label='ASIC')
+        'gain_1_linear': 1,  # Gain of the first stage in dB
+        'gain_2_linear': 1.259,  # Gain of the second stage in dB
 
+        'gain_2': 2,  # Gain of the second stage in dB
+        'stage_2_cutting_freq': 20000,  # Cutting frequency of the second stage in Hz
 
-    axs[0].set_xscale('log')
-    axs[0].set_yscale('log')
-    axs[0].grid("both")
-    axs[0].set_title('Linear scale')
-    axs[0].set_xlabel('Frequency [Hz]')
-    axs[0].set_ylabel('Gain linear')
-    axs[0].legend()
+        'f_start': 11,
+        'f_stop': 100000,
+        'nb_points_per_decade': 100,
+    }
 
+    print(parameters_dict)
 
+    parameters = InputParameters(parameters_dict)
 
-    plt.show()
+    calculation_engine.update_parameters(parameters)
+
+    parameters_dict = {
+        'mu_insulator': 1,
+        'len_coil': 155 * 10 ** -3,
+        'kapthon_thick': 30 * 10 ** -6,
+        'insulator_thick': 10 * 10 ** -6,
+        'diam_out_mandrel': 3.2 * 10 ** -3,
+        'diam_wire': 90 * 10 ** -6,
+        'capa_tuning': 1 * 10 ** -12,
+        'capa_triwire': 150 * 10 ** -12,
+        'len_core': 20 * 10 ** -2,
+        'diam_core': 3.2 * 10 ** -3,
+        'mu_r': 100000,
+        'nb_spire': 12100,
+        'ray_spire': 52 * 10 ** -3,
+        'rho_whire': 1.6,
+        'coeff_expansion': 1,
+
+        'gain_1': 0,  # Gain of the first stage in  linear
+        'stage_1_cutting_freq': 100,  # Cutting frequency of the first stage in Hz
+
+        'gain_1_linear': 1,  # Gain of the first stage in dB
+        'gain_2_linear': 1.259,  # Gain of the second stage in dB
+
+        'gain_2': 2,  # Gain of the second stage in dB
+        'stage_2_cutting_freq': 20000,  # Cutting frequency of the second stage in Hz
+
+        'f_start': 112,
+        'f_stop': 100000,
+        'nb_points_per_decade': 100,
+    }
+
+    print(parameters_dict)
+
+    parameters = InputParameters(parameters_dict)
+
+    calculation_engine.update_parameters(parameters)
+
+    # Print the dependencies json indented as a dictionary
+    dep = calculation_engine.inverse_dependencies
+
+    calculation_engine.export_inverse_dependencies_to_json('inverse_dependencies.json')
+
+    # # plot impedance vs frequency
+    # import matplotlib.pyplot as plt
+    # ASIC_Stage_1_TF_linear = calculation_engine.current_output_data.results['TF_ASIC_Stage_1_linear']
+    # ASIC_Stage_2_TF_linear = calculation_engine.current_output_data.results['TF_ASIC_Stage_2_linear']
+    # ASIC_TF_linear = calculation_engine.current_output_data.results['TF_ASIC_linear']
+    #
+    # #two subplots stacked vertically
+    # fig, axs = plt.subplots(2, 1, figsize=(10, 10))
+    # fig.suptitle('TF ASIC')
+    # axs[0].plot(ASIC_Stage_1_TF_linear[:,0], ASIC_Stage_1_TF_linear[:,1], label='Stage 1')
+    # axs[0].plot(ASIC_Stage_2_TF_linear[:,0], ASIC_Stage_2_TF_linear[:,1], label='Stage 2')
+    # axs[0].plot(ASIC_TF_linear[:,0], ASIC_TF_linear[:,1], label='ASIC')
+    #
+    #
+    # axs[0].set_xscale('log')
+    # axs[0].set_yscale('log')
+    # axs[0].grid("both")
+    # axs[0].set_title('Linear scale')
+    # axs[0].set_xlabel('Frequency [Hz]')
+    # axs[0].set_ylabel('Gain linear')
+    # axs[0].legend()
+    #
+    #
+    #
+    # plt.show()
 
 
 
