@@ -197,6 +197,56 @@
             "description": "Number of points per decade",
             "input_unit": "",
             "target_unit": ""
+        },
+        "temperature": {
+            "default": 296,
+            "min": 0,
+            "max": 500,
+            "description": "Temperature in Kelvin, used for Noise calculation",
+            "input_unit": "",
+            "target_unit": ""
+        }
+    },
+    "flicker" : {
+        "Para_A": {
+            "default": 766,
+            "min": 1,
+            "max": 1000,
+            "description": "Parameter A",
+            "input_unit": "",
+            "target_unit": ""
+        },
+        "Para_B": {
+            "default": 34,
+            "min": 1,
+            "max": 100,
+            "description": "Parameter B",
+            "input_unit": "",
+            "target_unit": ""
+        },
+        "Alpha": {
+            "default": 7,
+            "min": 1,
+            "max": 100,
+            "description": "Alpha",
+            "input_unit": "",
+            "target_unit": ""
+        },
+        "e_en": {
+            "default": 1,
+            "min": 0,
+            "max": 34,
+            "description": "e_en",
+            "input_unit": "",
+            "target_unit": ""
+        },
+        "e_in": {
+            "default": 1,
+            "min": 0,
+            "max": 34,
+            "description": "e_in",
+            "input_unit": "",
+            "target_unit": ""
         }
     }
 }

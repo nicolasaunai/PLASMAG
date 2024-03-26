@@ -519,9 +519,9 @@ class MainGUI(QMainWindow):
                     canvas.axes.plot(x_data, y_data, label='Current ' + selected_key)
 
                     if "CLTF" in selected_key:
-                        if "Non_Filtered" in selected_key:
+                        if "CLTF_Non_filtered" in selected_key:
                             oltf_key = 'OLTF_Non_filtered'
-                        else:
+                        elif "CLTF_Filtered" in selected_key:
                             oltf_key = 'OLTF_Filtered'
 
 
@@ -530,10 +530,10 @@ class MainGUI(QMainWindow):
                         y_data_oltf = oltf_data[:, 1]
                         canvas.axes.plot(x_data_oltf, y_data_oltf, label=oltf_key, color = 'g')
 
-                    elif "OLTF" in selected_key:
-                        if "Non_filtered" in selected_key:
+                    if "OLTF" in selected_key:
+                        if "OLTF_Non_filtered" in selected_key:
                             cltf_key = 'CLTF_Non_filtered'
-                        else:
+                        elif "OLTF_Filtered" in selected_key:
                             cltf_key = 'CLTF_Filtered'
 
 
@@ -567,20 +567,23 @@ class MainGUI(QMainWindow):
                         canvas.axes.plot(old_x_data, old_y_data, label='Old ' + selected_key, linestyle='--')
 
                         if "CLTF" in selected_key:
-                            if "Non_Filtered" in selected_key:
+                            if "CLTF_Non_filtered" in selected_key:
                                 oltf_key = 'OLTF_Non_filtered'
-                            else:
+                                print(oltf_key)
+                            elif "CLTF_Filtered" in selected_key:
                                 oltf_key = 'OLTF_Filtered'
+                                print(oltf_key)
 
                             oltf_data = old_results.get(oltf_key)
                             x_data_oltf = oltf_data[:, 0]
                             y_data_oltf = oltf_data[:, 1]
                             canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old " + oltf_key, color='r',linestyle='--')
 
-                        elif "OLTF" in selected_key:
-                            if "Non_filtered" in selected_key:
+
+                        if "OLTF" in selected_key:
+                            if "OLTF_Non_filtered" in selected_key:
                                 cltf_key = 'CLTF_Non_filtered'
-                            else:
+                            elif "OLTF_Filtered" in selected_key:
                                 cltf_key = 'CLTF_Filtered'
 
                             oltf_data = old_results.get(cltf_key)

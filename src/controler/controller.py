@@ -1,3 +1,5 @@
+from model.strategies.strategy_lib.Noise import PSD_R_cr, PSD_R_cr_filtered, PSD_R_Coil, PSD_R_Coil_filtered, \
+    PSD_Flicker, PSD_e_en, PSD_e_en_filtered, PSD_e_in, PSD_e_in_filtered, PSD_Total, PSD_Total_filtered
 from src.model.strategies.strategy_lib.CLTF import CLTF_Strategy_Non_Filtered, CLTF_Strategy_Filtered, \
     CLTF_Strategy_Non_Filtered_legacy
 from src.model.strategies.strategy_lib.OLTF import OLTF_Strategy_Non_Filtered, OLTF_Strategy_Filtered
@@ -40,6 +42,23 @@ class CalculationController:
 
         self.engine.add_or_update_node('CLTF_Non_filtered', CLTF_Strategy_Non_Filtered_legacy())
         self.engine.add_or_update_node('CLTF_Filtered', CLTF_Strategy_Filtered())
+
+        self.engine.add_or_update_node('PSD_R_cr', PSD_R_cr())
+        self.engine.add_or_update_node('PSD_R_cr_filtered', PSD_R_cr_filtered())
+
+        self.engine.add_or_update_node('PSD_R_Coil', PSD_R_Coil())
+        self.engine.add_or_update_node('PSD_R_Coil_filtered', PSD_R_Coil_filtered())
+
+        self.engine.add_or_update_node('PSD_Flicker', PSD_Flicker())
+
+        self.engine.add_or_update_node('PSD_e_en', PSD_e_en())
+        self.engine.add_or_update_node('PSD_e_en_filtered', PSD_e_en_filtered())
+
+        self.engine.add_or_update_node('PSD_e_in', PSD_e_in())
+        self.engine.add_or_update_node('PSD_e_in_filtered', PSD_e_in_filtered())
+
+        self.engine.add_or_update_node('PSD_Total', PSD_Total())
+        self.engine.add_or_update_node('PSD_Total_filtered', PSD_Total_filtered())
 
 
 
