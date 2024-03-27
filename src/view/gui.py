@@ -7,7 +7,6 @@ import numpy as np
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea, QFileDialog
-from isort.profiles import attrs
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -16,7 +15,7 @@ from src.controler.controller import CalculationController
 from qtrangeslider import QRangeSlider
 
 from pint import UnitRegistry
-ureg = UnitRegistry()
+ureg: UnitRegistry = UnitRegistry()
 
 def convert_unit(value, from_unit, to_unit):
     """
@@ -202,7 +201,7 @@ class MainGUI(QMainWindow):
         self.slider_precision = 100
 
     def init_canvas(self):
-        self.canvases = [MplCanvas() for _ in range(5)]
+        self.canvases = [MplCanvas() for _ in range(3)]
         self.toolbars = []
         self.checkboxes = []
         self.comboboxes = []
