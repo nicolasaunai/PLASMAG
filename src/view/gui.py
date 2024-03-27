@@ -289,6 +289,24 @@ class MainGUI(QMainWindow):
         import_action = file_menu.addAction('&Import Parameters')
         import_action.triggered.connect(self.import_parameters_from_json)
 
+        import_specific_action = file_menu.addAction('&Import Flicker Params')
+        import_specific_action.triggered.connect(self.import_flicker_data_from_json)
+
+    def import_flicker_data_from_json(self):
+        fileName, _ = QFileDialog.getOpenFileName(self, "Import Flicker Data", "", "JSON Files (*.json)")
+        if fileName:
+            with open(fileName, 'r') as json_file:
+                specific_data = json.load(json_file)
+
+            self.apply_specific_data_to_parameters(specific_data)
+            print(f"Specific data imported from {fileName}")
+
+    def apply_specific_data_to_parameters(self, specific_data):
+        for param, value in specific_data.items():
+            if param in self.inputs:
+                self.inputs[param].setText(str(value))
+        self.calculate()
+
     def export_parameters_to_json(self):
         # Show a save file dialog to the user
         fileName, _ = QFileDialog.getSaveFileName(self, "Save Parameters", "", "JSON Files (*.json)")
@@ -542,6 +560,21 @@ class MainGUI(QMainWindow):
                         y_data_oltf = oltf_data[:, 1]
                         canvas.axes.plot(x_data_oltf, y_data_oltf, label=cltf_key, color = 'g')
 
+                    if "Display_all_PSD" in selected_key:
+                        canvas.axes.clear()
+                        x_data = current_data[:, 0]
+                        PSD_R_cr = current_data[:, 1]
+                        PSD_R_Coil = current_data[:, 2]
+                        PSD_e_en = current_data[:, 3]
+                        PSD_e_in = current_data[:, 4]
+                        PSD_Total = current_data[:, 5]
+
+                        canvas.axes.plot(x_data, PSD_R_cr, label='PSD_R_cr')
+                        canvas.axes.plot(x_data, PSD_R_Coil, label='PSD_R_Coil')
+                        canvas.axes.plot(x_data, PSD_e_en, label='PSD_e_en')
+                        canvas.axes.plot(x_data, PSD_e_in, label='PSD_e_in')
+                        canvas.axes.plot(x_data, PSD_Total, label='PSD_Total')
+
 
 
                     with warnings.catch_warnings():
@@ -590,6 +623,35 @@ class MainGUI(QMainWindow):
                             x_data_oltf = oltf_data[:, 0]
                             y_data_oltf = oltf_data[:, 1]
                             canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old" + cltf_key, color='r', linestyle='--')
+
+                        if "Display_all_PSD" in selected_key:
+                            canvas.axes.clear()
+                            x_data = current_data[:, 0]
+                            PSD_R_cr = current_data[:, 1]
+                            PSD_R_Coil = current_data[:, 2]
+                            PSD_e_en = current_data[:, 3]
+                            PSD_e_in = current_data[:, 4]
+                            PSD_Total = current_data[:, 5]
+
+                            x_data_old = old_data[:, 0]
+                            PSD_R_cr_old = old_data[:, 1]
+                            PSD_R_Coil_old = old_data[:, 2]
+                            PSD_e_en_old = old_data[:, 3]
+                            PSD_e_in_old = old_data[:, 4]
+                            PSD_Total_old = old_data[:, 5]
+
+                            canvas.axes.plot(x_data, PSD_R_cr, label='PSD_R_cr')
+                            canvas.axes.plot(x_data, PSD_R_Coil, label='PSD_R_Coil')
+                            canvas.axes.plot(x_data, PSD_e_en, label='PSD_e_en')
+                            canvas.axes.plot(x_data, PSD_e_in, label='PSD_e_in')
+                            canvas.axes.plot(x_data, PSD_Total, label='PSD_Total')
+
+                            canvas.axes.plot(x_data_old, PSD_R_cr_old, label='Old PSD_R_cr', linestyle='--')
+                            canvas.axes.plot(x_data_old, PSD_R_Coil_old, label='Old PSD_R_Coil', linestyle='--')
+                            canvas.axes.plot(x_data_old, PSD_e_en_old, label='Old PSD_e_en', linestyle='--')
+                            canvas.axes.plot(x_data_old, PSD_e_in_old, label='Old PSD_e_in', linestyle='--')
+                            canvas.axes.plot(x_data_old, PSD_Total_old, label='Old PSD_Total', linestyle='--')
+
 
                         with warnings.catch_warnings():
                             warnings.simplefilter("error", UserWarning)  # Convert warnings to errors

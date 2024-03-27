@@ -223,6 +223,23 @@ class PSD_Total(CalculationStrategy):
     def get_dependencies():
         return ['PSD_e_in', 'PSD_e_en', 'PSD_R_Coil', 'PSD_R_cr', 'frequency_vector']
 
+class Display_all_PSD(CalculationStrategy):
+
+    def calculate(self, dependencies: dict, parameters: InputParameters):
+        PSD_e_in = dependencies['PSD_e_in'][:,1]
+        PSD_e_en = dependencies['PSD_e_en'][:,1]
+        PSD_R_Coil = dependencies['PSD_R_Coil'][:,1]
+        PSD_R_cr = dependencies['PSD_R_cr'][:,1]
+        PSD_Total = dependencies['PSD_Total'][:,1]
+        frequency_vector = dependencies['frequency_vector']
+
+        return np.column_stack((frequency_vector, PSD_R_cr, PSD_R_Coil, PSD_e_en, PSD_e_in, PSD_Total))
+
+    @staticmethod
+    def get_dependencies():
+        return ['PSD_e_in', 'PSD_e_en', 'PSD_R_Coil', 'PSD_R_cr', 'frequency_vector', "PSD_Total"]
+
+
 class PSD_Total_filtered(CalculationStrategy):
 
         def calculate(self, dependencies: dict, parameters: InputParameters):
