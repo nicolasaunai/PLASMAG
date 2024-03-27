@@ -63,6 +63,7 @@ class PSD_R_Coil(CalculationStrategy):
         (1 - inductance * capacitance * (2 * np.pi * f)**2)**2
         + ((resistance * capacitance * 2 * np.pi * f) + ((TF_ASIC_Stage_1_point * mutual_inductance * 2 * np.pi * f) / feedback_resistance))**2
     )
+
         result = (psd_r_coil_num / psd_r_coil_den)**0.5
         return result
 
@@ -253,3 +254,24 @@ class PSD_Total_filtered(CalculationStrategy):
         @staticmethod
         def get_dependencies():
             return ['TF_ASIC_Stage_2_linear', "PSD_Total"]
+
+
+class NEMI(CalculationStrategy):
+
+    def calculate(self, dependencies: dict, parameters: InputParameters):
+        PSD_Total = dependencies['PSD_Total'][:,1]
+        CLTF_Non_filtered = dependencies['CLTF_Non_filtered'][:,1]
+        frequency_vector = dependencies['frequency_vector']
+
+        PSD_Total = 20*np.log10(PSD_Total)
+        CLTF_Non_filtered = 20*np.log10(CLTF_Non_filtered)
+
+        result = (PSD_Total - CLTF_Non_filtered)
+
+        result = 10**(result/20)
+
+        return np.column_stack((frequency_vector, result))
+
+    @staticmethod
+    def get_dependencies():
+        return ['PSD_Total', 'CLTF_Non_filtered', 'frequency_vector']

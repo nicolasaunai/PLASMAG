@@ -202,7 +202,7 @@ class MainGUI(QMainWindow):
         self.slider_precision = 100
 
     def init_canvas(self):
-        self.canvases = [MplCanvas() for _ in range(3)]
+        self.canvases = [MplCanvas() for _ in range(5)]
         self.toolbars = []
         self.checkboxes = []
         self.comboboxes = []
@@ -231,13 +231,11 @@ class MainGUI(QMainWindow):
             top_layout.addWidget(checkbox)
             top_layout.addWidget(combo_box)
 
-            # Ajout du canvas au canvas_layout
             canvas_layout.addWidget(canvas)
 
             left_spacer = QSpacerItem(1, 1, QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Minimum)
             top_layout.addSpacerItem(left_spacer)
 
-            # Ajout du canvas_layout complet au plot_layout principal
             self.plot_layout.addLayout(canvas_layout)
     def init_ui(self):
         self.central_widget = QWidget()
@@ -268,6 +266,7 @@ class MainGUI(QMainWindow):
 
 
         self.plot_layout = QVBoxLayout()
+
 
 
         self.init_canvas()
