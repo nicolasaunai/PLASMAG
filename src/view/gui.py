@@ -730,13 +730,9 @@ class MainGUI(QMainWindow):
 
             # Clamp the value to the nearest valid boundary if out of range
             if value < min_val:
-                print(f"Correcting '{parameter}' value {value} to minimum {min_val}.")
-                value = min_val
-                line_edit.setText(str(value))
+                raise ValueError(f"Value {value} is below minimum {min_val} for '{parameter}'.")
             elif value > max_val:
-                print(f"Correcting '{parameter}' value {value} to maximum {max_val}.")
-                value = max_val
-                line_edit.setText(str(value))
+                raise ValueError(f"Value {value} exceeds maximum {max_val} for '{parameter}'.")
 
             # Reset background color if the input is within the valid range
             line_edit.setStyleSheet("")
