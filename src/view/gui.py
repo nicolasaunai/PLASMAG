@@ -15,7 +15,9 @@ from src.controler.controller import CalculationController
 from qtrangeslider import QRangeSlider
 
 from pint import UnitRegistry
+
 ureg: UnitRegistry = UnitRegistry()
+
 
 def convert_unit(value, from_unit, to_unit):
     """
@@ -30,6 +32,7 @@ def convert_unit(value, from_unit, to_unit):
     if from_unit and to_unit:
         return (value * ureg(from_unit)).to(ureg(to_unit)).magnitude
     return value
+
 
 class CalculationThread(QThread):
     calculation_finished = pyqtSignal(object)
@@ -46,6 +49,7 @@ class CalculationThread(QThread):
             self.calculation_finished.emit(calculation_result)  # Emit result
         except Exception as e:
             self.calculation_failed.emit(str(e))  # Emit error message
+
 
 class MplCanvas(FigureCanvas):
     def __init__(self):
@@ -75,8 +79,6 @@ class MainGUI(QMainWindow):
         super().__init__()
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 2560, 1440)  # Adjust size as needed
-
-
 
         self.load_default_parameters()
 
@@ -157,7 +159,8 @@ class MainGUI(QMainWindow):
         self.frequency_range_slider.setOrientation(Qt.Orientation.Horizontal)
         self.frequency_range_slider.setMinimum(self.input_parameters["misc"]['f_start']['min'])
         self.frequency_range_slider.setMaximum(self.input_parameters["misc"]['f_stop']['max'])
-        self.frequency_range_slider.setValue((self.input_parameters["misc"]['f_start']["default"], self.input_parameters["misc"]['f_stop']["default"]))
+        self.frequency_range_slider.setValue(
+            (self.input_parameters["misc"]['f_start']["default"], self.input_parameters["misc"]['f_stop']["default"]))
         self.frequency_range_slider.valueChanged.connect(self.update_frequency_range)
         self.grid_layout.addWidget(self.frequency_range_slider, 2, 1)
 
@@ -225,7 +228,6 @@ class MainGUI(QMainWindow):
             combo_box.currentIndexChanged.connect(self.update_plot)
             self.comboboxes.append(combo_box)
 
-
             top_layout.addWidget(toolbar)
             top_layout.addWidget(checkbox)
             top_layout.addWidget(combo_box)
@@ -236,6 +238,7 @@ class MainGUI(QMainWindow):
             top_layout.addSpacerItem(left_spacer)
 
             self.plot_layout.addLayout(canvas_layout)
+
     def init_ui(self):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -263,13 +266,9 @@ class MainGUI(QMainWindow):
 
         self.init_sliders()
 
-
         self.plot_layout = QVBoxLayout()
 
-
-
         self.init_canvas()
-
 
         # set proportions
         self.main_layout.addLayout(self.params_layout, 3)
@@ -456,8 +455,6 @@ class MainGUI(QMainWindow):
         line_edit.setText(f"{new_value:.3f}")  # Format with 3 decimal places
         self.calculation_timer.start()
 
-
-
     def calculate(self):
         """
         Gathers the current parameter values from the input fields, initiates the calculation process through the controller,
@@ -519,7 +516,6 @@ class MainGUI(QMainWindow):
 
             canvas.axes.clear()
 
-
             if current_data is not None:
                 if np.isscalar(current_data):
                     # Scalar data plotting
@@ -540,11 +536,10 @@ class MainGUI(QMainWindow):
                         elif "CLTF_Filtered" in selected_key:
                             oltf_key = 'OLTF_Filtered'
 
-
                         oltf_data = current_results.get(oltf_key)
                         x_data_oltf = oltf_data[:, 0]
                         y_data_oltf = oltf_data[:, 1]
-                        canvas.axes.plot(x_data_oltf, y_data_oltf, label=oltf_key, color = 'g')
+                        canvas.axes.plot(x_data_oltf, y_data_oltf, label=oltf_key, color='g')
 
                     if "OLTF" in selected_key:
                         if "OLTF_Non_filtered" in selected_key:
@@ -552,11 +547,10 @@ class MainGUI(QMainWindow):
                         elif "OLTF_Filtered" in selected_key:
                             cltf_key = 'CLTF_Filtered'
 
-
                         oltf_data = current_results.get(cltf_key)
                         x_data_oltf = oltf_data[:, 0]
                         y_data_oltf = oltf_data[:, 1]
-                        canvas.axes.plot(x_data_oltf, y_data_oltf, label=cltf_key, color = 'g')
+                        canvas.axes.plot(x_data_oltf, y_data_oltf, label=cltf_key, color='g')
 
                     if "Display_all_PSD" in selected_key:
                         canvas.axes.clear()
@@ -573,8 +567,6 @@ class MainGUI(QMainWindow):
                         canvas.axes.plot(x_data, PSD_e_in, label='PSD_e_in')
                         canvas.axes.plot(x_data, PSD_Total, label='PSD_Total')
 
-
-
                     with warnings.catch_warnings():
                         warnings.simplefilter("error", UserWarning)  # Convert warnings to errors
                         try:
@@ -589,7 +581,8 @@ class MainGUI(QMainWindow):
                 if old_data is not None:
                     if np.isscalar(old_data):
                         y_values = np.full_like(old_frequency_vector, old_data)
-                        canvas.axes.plot(old_frequency_vector, y_values, 'g', label='Old ' + selected_key, linestyle='--')
+                        canvas.axes.plot(old_frequency_vector, y_values, 'g', label='Old ' + selected_key,
+                                         linestyle='--')
                     elif old_data.ndim == 1:
                         canvas.axes.plot(old_frequency_vector, old_data, label='Old ' + selected_key, linestyle='--')
                     elif old_data.ndim > 1:
@@ -608,8 +601,8 @@ class MainGUI(QMainWindow):
                             oltf_data = old_results.get(oltf_key)
                             x_data_oltf = oltf_data[:, 0]
                             y_data_oltf = oltf_data[:, 1]
-                            canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old " + oltf_key, color='r',linestyle='--')
-
+                            canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old " + oltf_key, color='r',
+                                             linestyle='--')
 
                         if "OLTF" in selected_key:
                             if "OLTF_Non_filtered" in selected_key:
@@ -620,7 +613,8 @@ class MainGUI(QMainWindow):
                             oltf_data = old_results.get(cltf_key)
                             x_data_oltf = oltf_data[:, 0]
                             y_data_oltf = oltf_data[:, 1]
-                            canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old" + cltf_key, color='r', linestyle='--')
+                            canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old" + cltf_key, color='r',
+                                             linestyle='--')
 
                         if "Display_all_PSD" in selected_key:
                             canvas.axes.clear()
@@ -650,14 +644,12 @@ class MainGUI(QMainWindow):
                             canvas.axes.plot(x_data_old, PSD_e_in_old, label='Old PSD_e_in', linestyle='--')
                             canvas.axes.plot(x_data_old, PSD_Total_old, label='Old PSD_Total', linestyle='--')
 
-
                         with warnings.catch_warnings():
                             warnings.simplefilter("error", UserWarning)  # Convert warnings to errors
                             try:
                                 canvas.axes.set_yscale('log')
                             except UserWarning:
                                 canvas.axes.set_yscale('linear')
-
 
             canvas.axes.set_xlabel('Frequency (Hz)')
             canvas.axes.set_ylabel(selected_key)
@@ -758,11 +750,10 @@ def load_stylesheet(file_path):
     with open(file_path, "r") as file:
         return file.read()
 
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     window = MainGUI()
     window.show()
     sys.exit(app.exec())
-
-

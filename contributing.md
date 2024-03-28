@@ -134,3 +134,17 @@ Another example:
         }
 ```
 
+# Linting
+
+We use pylint to lint the code and ensure that it follows the PEP8 guidelines. You can run the linting with the following command:
+
+```bash
+ pylint --rcfile pylintrc src/folder/file.py
+```
+
+Replace `src/folder/file.py` with the path to the file you want to lint.
+Check the return of the command to see if there are any errors or warnings in the code. Adapt and correct the code according to the pylint output.
+
+You can read the [pylint documentation](https://pylint.pycqa.org/en/latest/) for more information on how to use pylint.
+
+
