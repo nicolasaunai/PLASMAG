@@ -1,5 +1,29 @@
 
-# Quick setup
+# PLASMAG 
+**(Python Library for Accurate Space Magnetometer Adjustments with Genetics)**
+
+PLASMAG is a simulation software specifically designed for 
+space magnetometers.
+At its core, PLASMAG serves as a comprehensive tool for the parameters adjustment.
+
+Currently, PLASMAG is tailored to support search coil type instruments.
+However, its architecture is built with flexibility and extensibility in mind. This means PLASMAG is not only limited to current implementations but is also designed to easily accommodate the addition of new instruments and the integration of diverse calculation methods and models. 
+
+
+## Table of Contents
+
+- [Quick Setup](#quick-setup)
+- [Installation](#installation)
+  - [Prerequisites](#prerequisites)
+  - [Installing Conda](#installing-conda)
+  - [Setting Up the Project](#setting-up-the-project)
+- [Usage](#usage)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+
+## Quick Setup
 
 Clone the repository : 
 
@@ -7,14 +31,18 @@ Clone the repository :
 git clone https://forge-osuc.cnrs-orleans.fr/git/plasmag
 ```
 
-# Installation
+## Installation
+
+### Prerequisites
 
 
-Get sure to have conda installed : https://conda.io/projects/conda/en/latest/user-guide/install/index.html
+Ensure you have Conda installed. If not, follow the instructions here: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 
 ### Linux conda installation
 
-You can try to install conda with the following command
+Linux Conda Installation
+
+Install Conda using the following commands:
 
 ```bash
 mkdir -p ~/miniconda3
@@ -29,15 +57,14 @@ Add conda to your PATH
 ~/miniconda3/bin/conda init bash
 ~/miniconda3/bin/conda init zsh
 ```
-Restart your terminal and try to run conda
-
+Restart your terminal and verify the Conda installation:
 ```bash
 conda --version
 ```
 
-### Install
+### Setting Up the Project
 
-Create a new conda environment from the environment.yml file
+Create and activate a new Conda environment:
 
 ```bash
 conda env create -f environment.yml
@@ -55,17 +82,26 @@ Run the application
 python PLASMAG.py
 ```
 
+## Usage
 
+TODO
 
-# Documentation
+## Documentation
 
-Require Sphinx
+To generate project documentation:
 
 ```bash
 pip install sphinx
-```
-
-```bash
 cd docs
 make html
 ```
+
+Navigate to docs/_build/html/index.html to view the documentation.
+
+## Contributing
+
+The project is open to contributions. Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for more information.
+
+## Acknowledgments
+
+TODO
