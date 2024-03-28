@@ -1,3 +1,9 @@
+"""
+ src/engine/input_parameters.py
+ PLASMAG 2024 Software, LPP
+"""
+
+
 class InputParameters:
     """
     This class serves as a container for all the parameters needed by
@@ -19,4 +25,8 @@ class InputParameters:
     """
 
     def __init__(self, data: dict):
+        """
+        Initializes the InputParameters object with the provided data.
+        :param data:
+        """
         self.data = data

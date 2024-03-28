@@ -1,4 +1,9 @@
+"""
+src/model/strategies/generic_strategy.py
+PLASMAG 2024 Software, LPP
+"""
 from abc import ABC, abstractmethod
+
 
 class CalculationStrategy(ABC):
     """
@@ -54,7 +59,7 @@ class CalculationStrategy(ABC):
             The result of the calculation. The type and shape of the result depends on the specific
             calculation being performed.
         """
-        pass
+        return NotImplemented
 
     @staticmethod
     def get_dependencies() -> list[str]:

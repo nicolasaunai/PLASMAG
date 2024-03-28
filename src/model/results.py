@@ -1,3 +1,7 @@
+"""
+ src/engine/results.py
+ PLASMAG 2024 Software, LPP
+"""
 class CalculationResults:
     """
     This class acts as a centralized repository for storing the outcomes of various

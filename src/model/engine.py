@@ -6,7 +6,6 @@ from src.model.input_parameters import InputParameters
 from src.model.node import CalculationNode
 
 
-
 class CalculationEngine:
     """
     Orchestrates the calculation process across multiple nodes within a calculation graph.
@@ -31,8 +30,9 @@ class CalculationEngine:
 
     def __init__(self):
         """
-        Initializes the calculation engine.
-        """
+               Initializes the calculation engine, setting up internal storage for parameters, nodes,
+               and calculation results.
+       """
         self.current_parameters = None
         self.old_parameters = None
         self.nodes = {}
@@ -43,25 +43,40 @@ class CalculationEngine:
         self.first_run = True
 
     def build_inverse_dependencies(self):
+        """
+                Constructs a map of inverse dependencies for each node to efficiently update dependent nodes
+                when parameters change. This map is used for identifying which nodes need recalculating when
+                input parameters are updated.
+        """
         self.inverse_dependencies = {}
 
         def add_inverse_dependency(node_name, dependency):
+            """
+                        Helper function to recursively build inverse dependencies.
+            """
             if dependency not in self.inverse_dependencies:
                 self.inverse_dependencies[dependency] = set()
             self.inverse_dependencies[dependency].add(node_name)
             if dependency in self.nodes:
-                for sub_dependency in self.nodes[dependency]._strategy.get_dependencies():
+                for sub_dependency in self.nodes[dependency].get_strategy().get_dependencies():
                     add_inverse_dependency(node_name, sub_dependency)
 
         for node_name, node in self.nodes.items():
-            if node._strategy:
-                for dependency in node._strategy.get_dependencies():
+            if node.get_strategy():
+                for dependency in node.get_strategy().get_dependencies():
                     add_inverse_dependency(node_name, dependency)
 
     def export_inverse_dependencies_to_json(self, file_path):
+        """
+                Exports the current inverse dependencies map to a JSON file, useful for debugging
+                or documentation purposes.
+
+                Parameters:
+                    file_path (str): The file path where the JSON data should be saved.
+        """
         inverse_dependencies_json = {key: list(value) for key, value in self.inverse_dependencies.items()}
 
-        with open(file_path, 'w') as json_file:
+        with open(file_path, 'w', encoding='utf-8') as json_file:
             json.dump(inverse_dependencies_json, json_file, indent=4)
 
     def count_nodes(self):
@@ -105,12 +120,12 @@ class CalculationEngine:
         # Helper function to recursively build the dependency tree
         def build_tree(node_name):
             node = self.nodes.get(node_name)
-            if not node or not node._strategy:
+            if not node or not node.get_strategy():
                 # If the node does not exist or has no strategy (and thus no dependencies), return an empty dict
                 return {}
 
             dependencies = {}
-            for dep_name in node._strategy.get_dependencies():
+            for dep_name in node.get_strategy().get_dependencies():
                 # Recursively build the tree for each dependency
                 dependencies[dep_name] = build_tree(dep_name)
             return dependencies
@@ -118,8 +133,8 @@ class CalculationEngine:
         # Corrected approach to identify head nodes
         all_dependencies = set()
         for node in self.nodes.values():
-            if node._strategy:
-                all_dependencies.update(node._strategy.get_dependencies())
+            if node.get_strategy():
+                all_dependencies.update(node.get_strategy().get_dependencies())
 
         head_nodes = [node_name for node_name in self.nodes if node_name not in all_dependencies]
 
@@ -130,7 +145,7 @@ class CalculationEngine:
 
         # Save the tree to a file in JSON format if a path is specified
         if path:
-            with open(path, 'w') as json_file:
+            with open(path, 'w', encoding='utf-8') as json_file:
                 json.dump(dependency_tree, json_file, indent=4)
 
         return dependency_tree
@@ -202,7 +217,7 @@ class CalculationEngine:
         # Switching calculation strategy requires re-calculating the node's value, it's equivalent to a change in the
         # parameters set
 
-        #self.update_parameters(self.current_parameters)
+        # self.update_parameters(self.current_parameters)
 
         # Check for cycles in the graph after adding or updating a node
         self.check_for_cycles()
@@ -242,7 +257,6 @@ class CalculationEngine:
             self.current_parameters = new_parameters
             self.run_calculations()
 
-
         changed_params = {}
 
         if self.current_parameters is not None:
@@ -250,8 +264,6 @@ class CalculationEngine:
                 old_value = self.current_parameters.data.get(param, None)
                 if new_value != old_value:
                     changed_params[param] = {'old': old_value, 'new': new_value}
-
-        print("Updated param:", changed_params)
 
         self.old_parameters = self.current_parameters
         self.current_parameters = new_parameters
@@ -261,12 +273,10 @@ class CalculationEngine:
 
         if changed_params:
             affected_nodes = self.get_affected_nodes(changed_params)
-            #print("Affected nodes:", affected_nodes)
 
             for node_name in affected_nodes:
                 self.nodes[node_name].mark_for_recalculation()
             self.run_calculations(affected_nodes)
-
 
     def run_calculations(self, node_names=None):
         """
@@ -283,5 +293,7 @@ class CalculationEngine:
             self.nodes[name].calculate()
 
     def __repr__(self):
+        """
+        Returns a string representation of the calculation engine calculation nodes
+        """
         return f"CalculationEngine({self.nodes})"
-

@@ -24,7 +24,8 @@ class AnalyticalCapacitanceStrategy(CalculationStrategy):
         nb_layer = int(nb_spire / nb_spire_per_layer) + 1
 
         return (
-                (np.pi * (mu_0 * 4 * np.pi * 10**-7) * mu_insulator * len_coil) / ((kapthon_thick + 2 * insulator_thick) * nb_layer ** 2)
+                (np.pi * (mu_0 * 4 * np.pi * 10**-7) * mu_insulator * len_coil) /
+                ((kapthon_thick + 2 * insulator_thick) * nb_layer ** 2)
                 * ((nb_layer - 1) * diam_out_mandrel * 1 / 2 + nb_layer * (nb_layer - 1) * (
                     diam_wire * kapthon_thick) / 2)
                 + capa_tuning + capa_triwire

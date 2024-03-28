@@ -1,3 +1,7 @@
+"""
+    src/engine/node.py
+    PLASMAG 2024 Software, LPP
+"""
 from src.model.strategies import CalculationStrategy
 
 
@@ -39,8 +43,20 @@ class CalculationNode:
         self._strategy = strategy
         self.needs_recalculation = False
 
+    def get_strategy(self):
+        """
+        Returns the calculation strategy associated with this node.
+        :return: CalculationStrategy: The strategy used for calculations.
+        """
+        if self._strategy is None:
+            return None
+        return self._strategy
+
     def mark_for_recalculation(self):
-        #print(f"Marking {self.name} for recalculation")
+        """
+        Marks this node as needing recalculation, even if the value is already calculated.
+        :return: None
+        """
         self.needs_recalculation = True
     def resolve_dependencies(self) -> dict:
         """
@@ -65,7 +81,10 @@ class CalculationNode:
         return dependencies
 
     def calculate(self) -> any:
-        # Checks if this node's result is already calculated and if recalculation is not needed
+        """
+        Checks if this node's result is already calculated and if recalculation is not needed
+        :return: The calculated value of this node. Can be a scalar or a tensor.
+        """
         existing_value = self.engine.current_output_data.get_result(self.name)
         if existing_value is not None and not self.needs_recalculation:
             return existing_value
@@ -108,4 +127,3 @@ class CalculationNode:
         # Invalidate the previously calculated value for this node to ensure recalculation
         self.engine.current_output_data.set_result(self.name, None)
         self.mark_for_recalculation()
-
