@@ -103,8 +103,9 @@ class MainGUI(QMainWindow):
             controller (CalculationController): The controller handling the calculation logic.
     """
 
-    def __init__(self):
+    def __init__(self, config_dict=None):
         super().__init__()
+        self.config_dict = config_dict
         self.slider_precision = None
         self.plot_layout = None
         self.calculate_btn = None
@@ -354,7 +355,11 @@ class MainGUI(QMainWindow):
 
         self.plot_layout = QVBoxLayout()
 
-        self.init_canvas()
+
+        if self.config_dict is not None:
+            self.init_canvas(self.config_dict["number_of_plots"])
+        else:
+            self.init_canvas()
 
         # set proportions
         self.main_layout.addLayout(self.params_layout, 3)
