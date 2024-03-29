@@ -155,7 +155,7 @@ class MainGUI(QMainWindow):
             section_widget.setLayout(section_layout)
             section_layout.setSpacing(10)
 
-            section_label = QLabel(f"<b>{section_name.replace('_', ' ').capitalize()}</b>")
+            section_label = QLabel(f"<b>{section_name}</b>")
             section_label.setStyleSheet("font-weight: bold; font-size: 16px")
             section_layout.addWidget(section_label, 0, 0, 1, 2)  # Span sur 2 colonnes
 
