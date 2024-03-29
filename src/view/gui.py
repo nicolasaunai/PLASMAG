@@ -2,6 +2,7 @@
 src/view/gui.py
 PLASMAG GUI module
 """
+import csv
 import json
 import os
 import sys
@@ -375,6 +376,53 @@ class MainGUI(QMainWindow):
         import_specific_action = file_menu.addAction('&Import Flicker Params')
         import_specific_action.triggered.connect(self.import_flicker_data_from_json)
 
+        export_results_btn = file_menu.addAction('&Export results')
+        export_results_btn.triggered.connect(self.export_results)
+
+    def export_results(self):
+        """
+        Exports the latest calculation results to a CSV file.
+        The user is prompted to select a file location for the export.
+        :return: None
+        """
+        fileName, _ = QFileDialog.getSaveFileName(self, "Export Results", "", "CSV Files (*.csv)")
+        if not fileName:
+            return  # User canceled the dialog
+
+        frequency_vector = self.latest_results.get('frequency_vector', [])
+        headers = ['Frequency'] if len(frequency_vector) else []
+        data = [frequency_vector] if len(frequency_vector) else []
+
+        # Process each result to structure the data for CSV writing
+        for key, value in self.latest_results.items():
+            if key == 'frequency_vector':  # Skip the frequency vector itself
+                continue
+            if key == 'Display_all_PSD':
+                continue
+
+            if np.isscalar(value):
+                # Handle scalars by repeating the value for each frequency
+                headers.append(key)
+                if len(data) == 0:  # No frequency vector, just a single row for the scalar
+                    data.append([value])
+                else:
+                    data.append([value] * len(frequency_vector))
+            elif value.ndim == 1:  # Vector
+                headers.append(key)
+                data.append(value)
+            elif value.ndim == 2:  # Matrix, skip the frequency column (column 0)
+                for col_index in range(1, value.shape[1]):
+                    headers.append(f"{key}_{col_index}")
+                    data.append(value[:, col_index])
+
+        # Transpose data for CSV writing
+        data = zip(*data)
+
+        with open(fileName, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(headers)
+            for row in data:
+                writer.writerow(row)
     def import_flicker_data_from_json(self):
         """
         Imports specific data from a JSON.
