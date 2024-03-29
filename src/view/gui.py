@@ -5,6 +5,7 @@ PLASMAG GUI module
 import json
 import os
 import sys
+import time
 import warnings
 from pint import UnitRegistry
 import numpy as np
@@ -13,6 +14,8 @@ from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea, QFileDialog, \
     QMessageBox
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import QSplashScreen, QApplication
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -917,6 +920,21 @@ class MainGUI(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    window = MainGUI()
-    window.show()
+    original_pixmap = QPixmap("/home/ronceray/Documents/PLASMAG/PLASMAG/ressources/PLASMAG_logo_v1.png")
+    scaled_pixmap = original_pixmap.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
+
+    splash = QSplashScreen(scaled_pixmap)
+    splash.showMessage("Loading...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
+    splash.show()
+
+    app.processEvents()
+
+    def initialize_main_window():
+        global window
+        window = MainGUI()
+        window.show()
+        splash.finish(window)
+
+    QTimer.singleShot(1000, initialize_main_window)
+
     sys.exit(app.exec())
