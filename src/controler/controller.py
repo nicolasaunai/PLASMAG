@@ -77,9 +77,6 @@ class CalculationController:
         self.engine.add_or_update_node('PSD_e_in', PSD_e_in())
         self.engine.add_or_update_node('PSD_e_in_filtered', PSD_e_in_filtered())
 
-        self.engine.add_or_update_node('PSD_ASIC', PSD_ASIC())
-
-
         self.engine.add_or_update_node('PSD_Total', PSD_Total())
         self.engine.add_or_update_node('PSD_Total_filtered', PSD_Total_filtered())
 
