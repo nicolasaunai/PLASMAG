@@ -75,7 +75,7 @@ class CLTF_Strategy_Non_Filtered_legacy(CalculationStrategy):
                        TF_ASIC_Stage_1_point, L, C, R,
                        mutual_inductance, feedback_resistance):
         result = (nb_spire * (np.pi * (ray_spire)**2) * mu_app * 4 * np.pi * 10**-7 * (2* np.pi * f)* TF_ASIC_Stage_1_point)  / ((1- L * C * (2*np.pi*f)**2)**2 + (((2*np.pi*f)*R*C + (2*np.pi*f)*mutual_inductance * TF_ASIC_Stage_1_point/feedback_resistance)**2))**0.5
-        return result * 10**6
+        return result
 
 
 

@@ -6,7 +6,9 @@ from src.view.gui import MainGUI
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    config_dict = {"number_of_plots": 2}
+    with open("config.json", "r") as f:
+        config_dict = json.load(f)
+
 
 
     window = MainGUI(config_dict=config_dict)

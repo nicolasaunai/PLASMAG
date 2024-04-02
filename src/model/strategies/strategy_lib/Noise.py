@@ -105,7 +105,7 @@ class PSD_Flicker(CalculationStrategy):
         return ['frequency_vector', "Para_A", "Para_B", "Alpha", "e_en"]
 
     def calculate_psd_flicker(self, Para_A, Para_B, Alpha, e_en, f):
-        return Para_A * (1 / (Para_B * 10**(9) *  (f ** (Alpha/10)))) + (e_en / 10 * 10 ** (-9))
+        return Para_A * (1 / (Para_B * 10**(9) *  (f ** (Alpha/10)))) + (e_en * 10 ** (-9))
 
 class PSD_e_en(CalculationStrategy):
 
@@ -209,7 +209,6 @@ class PSD_e_in_filtered(CalculationStrategy):
             return ['TF_ASIC_Stage_2_linear', "PSD_e_in"]
 
 class PSD_Total(CalculationStrategy):
-
     def calculate(self, dependencies: dict, parameters: InputParameters):
         PSD_e_in = dependencies['PSD_e_in'][:,1]
         PSD_e_en = dependencies['PSD_e_en'][:,1]
