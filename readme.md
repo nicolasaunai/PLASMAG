@@ -18,6 +18,7 @@ However, its architecture is built with flexibility and extensibility in mind. T
   - [Installing Conda](#installing-conda)
   - [Setting Up the Project](#setting-up-the-project)
 - [Usage](#usage)
+- [Availables Models](#availables-models)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
@@ -85,6 +86,25 @@ python PLASMAG.py
 ## Usage
 
 TODO
+
+## Availables Models
+
+At the moment, the PLASMAG simulation model has only one model implemented: a simple search coil MAGNETOMETER analytic model. 
+
+The simulation was validated by comparing the simulation results with the real data from the JUICE mission. 
+
+The parameters for JUICE's search coil can be found in the data/JUICE.json file."
+
+The implemented simulation model performs quite well, demonstrating high accuracy for low frequency values. This is reflected in the impedance plot, where the plotted curves all maintain consistent levels and shapes. 
+
+However, challenges arise when extending the analysis to higher frequency ranges. 
+Specifically, for the NEMI and Closed Loop Transfer Function (CLTF),
+the model tends to diverge slightly at high frequencies.
+This divergence becomes particularly evident after the resonance frequency. 
+At this juncture, analytically describing the 'capacitance' part of the system grows 
+increasingly difficult, leading to a slight deviation from expected behaviors. 
+This discrepancy underlines a current limitation of the model, spotlighting the 
+need for further refinement and development to enhance its accuracy.
 
 ## Documentation
 
