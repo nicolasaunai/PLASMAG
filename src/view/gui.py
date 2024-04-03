@@ -405,8 +405,14 @@ class MainGUI(QMainWindow):
             self.init_canvas()
 
         # set proportions
-        self.main_layout.addLayout(self.params_layout, 3)
-        self.main_layout.addLayout(self.plot_layout, 4)
+        try :
+            param_proportion = self.config_dict["param_proportion"]
+            plot_proportion = self.config_dict["plot_proportion"]
+        except KeyError:
+            param_proportion = 2
+            plot_proportion = 4
+        self.main_layout.addLayout(self.params_layout, param_proportion)
+        self.main_layout.addLayout(self.plot_layout, plot_proportion)
 
         self.init_controller()
 

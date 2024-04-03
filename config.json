@@ -1,3 +1,5 @@
 {
-  "number_of_plots": 3
+  "number_of_plots": 3,
+  "param_proportion": 2,
+  "plot_proportion" : 4
 }
