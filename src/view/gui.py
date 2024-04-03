@@ -15,7 +15,7 @@ import pandas as pd
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea, QFileDialog, \
-    QMessageBox
+    QMessageBox, QInputDialog
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QSplashScreen, QApplication
 
@@ -297,12 +297,25 @@ class MainGUI(QMainWindow):
 
         self.slider_precision = 100
 
+    def clear_plot_layout(self):
+        while self.plot_layout.count():
+            child = self.plot_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+            elif child.layout():
+                while child.layout().count():
+                    grand_child = child.layout().takeAt(0)
+                    if grand_child.widget():
+                        grand_child.widget().deleteLater()
+
     def init_canvas(self, number_of_plots=3):
         """
         Initializes the matplotlib canvas for plotting the calculation results.
         Creates three separate canvases for different plots and adds them to the main layout.
         :return:
         """
+        self.clear_plot_layout()
+
         self.canvases = [MplCanvas() for _ in range(number_of_plots)]
         self.toolbars = []
         self.checkboxes = []
@@ -416,6 +429,42 @@ class MainGUI(QMainWindow):
 
         export_results_btn = file_menu.addAction('&Export results')
         export_results_btn.triggered.connect(self.export_results)
+
+        options_menu = self.menuBar().addMenu('&Options')
+        change_plot_count_action = options_menu.addAction('Change Plot Count')
+        change_plot_count_action.triggered.connect(self.change_plot_count)
+
+    def change_plot_count(self):
+        num, ok = QInputDialog.getInt(self, "Change Plot Count", "Number of Plots:", min=1, max=5, step=1)
+        if ok and num != len(self.canvases):
+            self.update_canvas_count(num)
+
+    def update_canvas_count(self, num_plots):
+        for toolbar in self.toolbars:
+            toolbar.setParent(None)
+            toolbar.deleteLater()
+        for button in self.background_buttons:
+            button.setParent(None)
+            button.deleteLater()
+        for button in self.reset_background_buttons:
+            button.setParent(None)
+            button.deleteLater()
+        for checkbox in self.checkboxes:
+            checkbox.setParent(None)
+            checkbox.deleteLater()
+        for combobox in self.comboboxes:
+            combobox.setParent(None)
+            combobox.deleteLater()
+
+        self.toolbars.clear()
+        self.background_buttons.clear()
+        self.reset_background_buttons.clear()
+        self.checkboxes.clear()
+        self.comboboxes.clear()
+
+        self.clear_plot_layout()
+
+        self.init_canvas(num_plots)
 
     def load_background_curve(self, canvas_index):
         try :
