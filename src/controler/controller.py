@@ -29,7 +29,7 @@ class CalculationController:
         of the engine. This controller is the main interface between the user interface and the calculation engine.
         It can be used to run the engine headless or to update the parameters and run the calculations.
     """
-    def __init__(self, params_dict=None):
+    def __init__(self, params_dict=None, backups_count=3):
         """
                 Initializes the CalculationController with optional parameters. This controller
                 sets up the calculation engine.
@@ -40,7 +40,7 @@ class CalculationController:
                 - params_dict (dict, optional): A dictionary of parameters to initialize the
                 input parameters of the engine.
         """
-        self.engine = CalculationEngine()
+        self.engine = CalculationEngine(backups_count=backups_count)
 
         self.engine.add_or_update_node('frequency_vector', FrequencyVectorStrategy())
         self.engine.add_or_update_node('resistance', AnalyticalResistanceStrategy())
@@ -149,3 +149,18 @@ class CalculationController:
                - dict: The results of the previous calculations performed by the engine.
            """
         return self.engine.old_output_data.results
+
+    def save_current_results(self, index):
+        """
+               Saves the current results to the output data of the calculation engine.
+
+               Parameters:
+               - index (int): The index of the current results to be saved.
+           """
+        self.engine.save_calculation_results(index)
+
+    def clear_calculation_results(self):
+        """
+               Clears the current results from the calculation engine.
+           """
+        self.engine.clear_calculation_results()

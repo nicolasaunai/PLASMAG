@@ -28,7 +28,7 @@ class CalculationEngine:
         run_calculations: Executes the calculations across all nodes in the graph.
     """
 
-    def __init__(self):
+    def __init__(self, backups_count=3):
         """
                Initializes the calculation engine, setting up internal storage for parameters, nodes,
                and calculation results.
@@ -41,6 +41,27 @@ class CalculationEngine:
         self.inverse_dependencies = {}
         self.build_inverse_dependencies()
         self.first_run = True
+
+        self.saved_data_results = [CalculationResults() for _ in range(backups_count)]
+        print(len(self.saved_data_results))
+        print("Calculation Engine Initialized")
+
+    def save_calculation_results(self, index):
+        """
+        Saves the current calculation results to a specific index in the saved_data_results list.
+        """
+        self.saved_data_results[index] = copy.deepcopy(self.current_output_data)
+        print("Results saved to index: ", index)
+
+    def clear_calculation_results(self):
+        """
+        Clears all data from the saved_data_results list at a specific index.
+        """
+        self.saved_data_results = [CalculationResults() for _ in range(5)]
+        print("Results cleared")
+
+
+
 
     def build_inverse_dependencies(self):
         """

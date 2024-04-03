@@ -283,12 +283,12 @@ class MainGUI(QMainWindow):
         self.calculation_timer.setSingleShot(True)
         self.calculation_timer.timeout.connect(self.delayed_calculate)
 
-    def init_controller(self):
+    def init_controller(self, backups_count=3):
         """
         Initializes the CalculationController for handling the calculation logic.
         :return:
         """
-        self.controller = CalculationController()
+        self.controller = CalculationController(backups_count=backups_count)
 
         for parameter, line_edit in self.inputs.items():
             line_edit.mousePressEvent = (lambda event, le=line_edit,
@@ -308,7 +308,10 @@ class MainGUI(QMainWindow):
                     if grand_child.widget():
                         grand_child.widget().deleteLater()
 
-    def init_canvas(self, number_of_plots=3):
+    def clear_saved_results(self):
+        self.controller.clear_calculation_results()
+        self.plot_results(self.latest_results)
+    def init_canvas(self, number_of_plots=3, number_of_buttons=3):
         """
         Initializes the matplotlib canvas for plotting the calculation results.
         Creates three separate canvases for different plots and adds them to the main layout.
@@ -323,20 +326,44 @@ class MainGUI(QMainWindow):
         self.background_buttons = []
         self.background_curve_data = [None] * number_of_plots
         self.reset_background_buttons = []
+        self.all_buttons = []
+
+        buttons_labels = [str(i) for i in range(1, number_of_buttons + 1)]
+        btn_list = []
+
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(0)  # Ensure no extra space between buttons
+
+        # Add a spacer item at the beginning to push buttons to center
+        btn_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        for label in buttons_labels:
+            # Create the buttons
+            btn1 = QPushButton(label)
+            btn1.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
+            btn1.clicked.connect(lambda _, l=label: self.controller.save_current_results(int(l) - 1))
+            btn_list.append(btn1)
+
+        # Note: btnC added outside of loop, so it's not duplicated in logic
+        btnC = QPushButton("C")
+        btnC.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
+        btnC.clicked.connect(lambda _: self.clear_saved_results())
+        btn_list.append(btnC)
+
+        # Add the buttons to the layout
+        for btn in btn_list:
+            btn_layout.addWidget(btn)
+
+        # Add another spacer item at the end to maintain center alignment
+        btn_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        btn_layout.setContentsMargins(0, 0, 0, 0)  # Reduce margins to utilize available space efficiently
+
+        self.plot_layout.addLayout(btn_layout)
+        self.all_buttons.append(btn_list)
 
         for i, canvas in enumerate(self.canvases):
             canvas_layout = QVBoxLayout()
-
-            btn1 = QPushButton("1")
-            btn2 = QPushButton("2")
-            btn3 = QPushButton("3")
-            btnC = QPushButton("C")
-
-            # retract the buttons to minimum width
-            btn1.setMaximumWidth(30)
-            btn2.setMaximumWidth(30)
-            btn3.setMaximumWidth(30)
-            btnC.setMaximumWidth(30)
 
 
             top_layout = QHBoxLayout()
@@ -366,11 +393,7 @@ class MainGUI(QMainWindow):
 
             top_layout.addWidget(toolbar)
             top_layout.addWidget(checkbox)
-            # add button to layout
-            top_layout.addWidget(btn1)
-            top_layout.addWidget(btn2)
-            top_layout.addWidget(btn3)
-            top_layout.addWidget(btnC)
+
             top_layout.addWidget(combo_box)
             top_layout.addWidget(background_button)
             top_layout.addWidget(reset_background_button)
@@ -381,6 +404,7 @@ class MainGUI(QMainWindow):
             top_layout.addSpacerItem(left_spacer)
 
             self.plot_layout.addLayout(canvas_layout)
+
 
     def init_ui(self):
         """
@@ -435,7 +459,8 @@ class MainGUI(QMainWindow):
         self.main_layout.addLayout(self.params_layout, param_proportion)
         self.main_layout.addLayout(self.plot_layout, plot_proportion)
 
-        self.init_controller()
+        # For the moment we have 3 save buttons for each plot, so 3 backups_count
+        self.init_controller(backups_count=len(self.canvases))
 
     def init_menu(self):
         """
@@ -847,180 +872,55 @@ class MainGUI(QMainWindow):
 
         QMessageBox.critical(self, "An error occurred", f"Calculation failed: {error_message}")
 
-
-
-
-
     def update_plot(self, index):
-        """
-        Updates the plot based on the selected key from the combo box and the state of the 'Show Old Curve' checkbox.
-        :param index:
-        :return:
-        """
+        def plot_curve(data, label, linestyle='-', color=None):
+            """Plot a curve on the canvas."""
+            if np.isscalar(data):
+                y_values = np.full_like(frequency_vector, data)
+                canvas.axes.plot(frequency_vector, y_values, label=label, linestyle=linestyle, color=color)
+            elif data.ndim == 1:
+                canvas.axes.plot(frequency_vector, data, label=label, linestyle=linestyle, color=color)
+            elif data.ndim > 1:
+                x_values = data[:, 0]
+                for col_index in range(1, data.shape[1]):
+                    y_values = data[:, col_index]
+                    canvas.axes.plot(x_values, y_values, label=f"{label}_{col_index}", linestyle=linestyle)
+
+
         for i, (canvas, combo_box, checkbox) in enumerate(zip(self.canvases, self.comboboxes, self.checkboxes)):
             selected_key = combo_box.currentText()
-            if not selected_key:  # In case the combo box is empty
-                continue
+            if not selected_key:
+                continue  # Skip if no key is selected
+
+            canvas.axes.clear()  # Clear the canvas for new plotting
 
             current_results = self.controller.get_current_results()
             old_results = self.controller.get_old_results()
+            frequency_vector = current_results.get('frequency_vector', [])
 
-            if current_results is None:
-                print("No current calculation results available.")
-                continue
-
+            # Plot Current Data
             current_data = current_results.get(selected_key)
-            frequency_vector = current_results.get('frequency_vector')
-
-            canvas.axes.clear()
-
             if current_data is not None:
-                if np.isscalar(current_data):
-                    # Scalar data plotting
-                    y_values = np.full_like(frequency_vector, current_data)
-                    canvas.axes.plot(frequency_vector, y_values, 'r', label='Current ' + selected_key)
-                elif current_data.ndim == 1:
-                    # 1D Vector data plotting
-                    canvas.axes.plot(frequency_vector, current_data, label='Current ' + selected_key)
-                elif current_data.ndim > 1:
-                    # 2D Vector data plotting (assumes [X, Y] format)
-                    x_data = current_data[:, 0]
-                    y_data = current_data[:, 1]
-                    canvas.axes.plot(x_data, y_data, label='Current ' + selected_key)
+                plot_curve(current_data, 'Current', linestyle='-')
 
-                    if "CLTF" in selected_key:
-                        if "CLTF_Non_filtered" in selected_key:
-                            oltf_key = 'OLTF_Non_filtered'
-                        elif "CLTF_Filtered" in selected_key:
-                            oltf_key = 'OLTF_Filtered'
-
-                        oltf_data = current_results.get(oltf_key)
-                        x_data_oltf = oltf_data[:, 0]
-                        y_data_oltf = oltf_data[:, 1]
-                        canvas.axes.plot(x_data_oltf, y_data_oltf, label=oltf_key, color='g')
-
-                    if "OLTF" in selected_key:
-                        if "OLTF_Non_filtered" in selected_key:
-                            cltf_key = 'CLTF_Non_filtered'
-                        elif "OLTF_Filtered" in selected_key:
-                            cltf_key = 'CLTF_Filtered'
-
-                        oltf_data = current_results.get(cltf_key)
-                        x_data_oltf = oltf_data[:, 0]
-                        y_data_oltf = oltf_data[:, 1]
-                        canvas.axes.plot(x_data_oltf, y_data_oltf, label=cltf_key, color='g')
-
-                    if "Display_all_PSD" in selected_key:
-                        canvas.axes.clear()
-                        x_data = current_data[:, 0]
-                        PSD_R_cr = current_data[:, 1]
-                        PSD_R_Coil = current_data[:, 2]
-                        PSD_e_en = current_data[:, 3]
-                        PSD_e_in = current_data[:, 4]
-                        PSD_Total = current_data[:, 5]
-
-                        canvas.axes.plot(x_data, PSD_R_cr, label='PSD_R_cr')
-                        canvas.axes.plot(x_data, PSD_R_Coil, label='PSD_R_Coil')
-                        canvas.axes.plot(x_data, PSD_e_en, label='PSD_e_en')
-                        canvas.axes.plot(x_data, PSD_e_in, label='PSD_e_in')
-                        canvas.axes.plot(x_data, PSD_Total, label='PSD_Total')
-
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("error", UserWarning)  # Convert warnings to errors
-                        try:
-                            canvas.axes.set_yscale('log')
-                        except UserWarning:
-                            canvas.axes.set_yscale('linear')
-
-                # Plot background curve if available
-                if self.background_curve_data[i] is not None:
-                    x_background, y_background = self.background_curve_data[i]
-                    # crop x_background to the frequency range
-                    mask = (x_background >= self.f_start_value) & (x_background <= self.f_stop_value)
-                    x_background_filtered = x_background[mask]
-                    y_background_filtered = y_background[mask]
-                    canvas.axes.plot(x_background_filtered, y_background_filtered,label='Background Curve')
-
-                # Repeat plotting logic for old data if checkbox is checked
+            # Plot Old Data if checkbox is checked
             if checkbox.isChecked() and old_results:
                 old_data = old_results.get(selected_key)
-                old_frequency_vector = old_results.get('frequency_vector')
                 if old_data is not None:
-                    if np.isscalar(old_data):
-                        y_values = np.full_like(old_frequency_vector, old_data)
-                        canvas.axes.plot(old_frequency_vector, y_values, 'g', label='Old ' + selected_key,
-                                         linestyle='--')
-                    elif old_data.ndim == 1:
-                        canvas.axes.plot(old_frequency_vector, old_data, label='Old ' + selected_key, linestyle='--')
-                    elif old_data.ndim > 1:
-                        old_x_data = old_data[:, 0]
-                        old_y_data = old_data[:, 1]
-                        canvas.axes.plot(old_x_data, old_y_data, label='Old ' + selected_key, linestyle='--')
+                    plot_curve(old_data, 'Old', linestyle='--')
 
-                        if "CLTF" in selected_key:
-                            if "CLTF_Non_filtered" in selected_key:
-                                oltf_key = 'OLTF_Non_filtered'
-                                print(oltf_key)
-                            elif "CLTF_Filtered" in selected_key:
-                                oltf_key = 'OLTF_Filtered'
-                                print(oltf_key)
-
-                            oltf_data = old_results.get(oltf_key)
-                            x_data_oltf = oltf_data[:, 0]
-                            y_data_oltf = oltf_data[:, 1]
-                            canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old " + oltf_key, color='r',
-                                             linestyle='--')
-
-                        if "OLTF" in selected_key:
-                            if "OLTF_Non_filtered" in selected_key:
-                                cltf_key = 'CLTF_Non_filtered'
-                            elif "OLTF_Filtered" in selected_key:
-                                cltf_key = 'CLTF_Filtered'
-
-                            oltf_data = old_results.get(cltf_key)
-                            x_data_oltf = oltf_data[:, 0]
-                            y_data_oltf = oltf_data[:, 1]
-                            canvas.axes.plot(x_data_oltf, y_data_oltf, label="Old" + cltf_key, color='r',
-                                             linestyle='--')
-
-                        if "Display_all_PSD" in selected_key:
-                            canvas.axes.clear()
-                            x_data = current_data[:, 0]
-                            PSD_R_cr = current_data[:, 1]
-                            PSD_R_Coil = current_data[:, 2]
-                            PSD_e_en = current_data[:, 3]
-                            PSD_e_in = current_data[:, 4]
-                            PSD_Total = current_data[:, 5]
-
-                            x_data_old = old_data[:, 0]
-                            PSD_R_cr_old = old_data[:, 1]
-                            PSD_R_Coil_old = old_data[:, 2]
-                            PSD_e_en_old = old_data[:, 3]
-                            PSD_e_in_old = old_data[:, 4]
-                            PSD_Total_old = old_data[:, 5]
-
-                            canvas.axes.plot(x_data, PSD_R_cr, label='PSD_R_cr')
-                            canvas.axes.plot(x_data, PSD_R_Coil, label='PSD_R_Coil')
-                            canvas.axes.plot(x_data, PSD_e_en, label='PSD_e_en')
-                            canvas.axes.plot(x_data, PSD_e_in, label='PSD_e_in')
-                            canvas.axes.plot(x_data, PSD_Total, label='PSD_Total')
-
-                            canvas.axes.plot(x_data_old, PSD_R_cr_old, label='Old PSD_R_cr', linestyle='--')
-                            canvas.axes.plot(x_data_old, PSD_R_Coil_old, label='Old PSD_R_Coil', linestyle='--')
-                            canvas.axes.plot(x_data_old, PSD_e_en_old, label='Old PSD_e_en', linestyle='--')
-                            canvas.axes.plot(x_data_old, PSD_e_in_old, label='Old PSD_e_in', linestyle='--')
-                            canvas.axes.plot(x_data_old, PSD_Total_old, label='Old PSD_Total', linestyle='--')
-
-                        with warnings.catch_warnings():
-                            warnings.simplefilter("error", UserWarning)  # Convert warnings to errors
-                            try:
-                                canvas.axes.set_yscale('log')
-                            except UserWarning:
-                                canvas.axes.set_yscale('linear')
+            # Plot Saved Data from saved_data_results
+            for saved_index, saved_results in enumerate(self.controller.engine.saved_data_results):
+                saved_data = saved_results.results.get(selected_key)
+                if saved_data is not None:
+                    plot_label = f'Saved {saved_index + 1}'
+                    plot_curve(saved_data, plot_label, linestyle=':')
 
             canvas.axes.set_xlabel('Frequency (Hz)')
             canvas.axes.set_ylabel(selected_key)
             canvas.axes.set_xscale('log')
+            canvas.axes.set_yscale('log')
+
             canvas.axes.grid(which='both')
             canvas.axes.legend()
             canvas.draw()
