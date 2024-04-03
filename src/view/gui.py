@@ -916,6 +916,16 @@ class MainGUI(QMainWindow):
                     plot_label = f'Saved {saved_index + 1}'
                     plot_curve(saved_data, plot_label, linestyle=':')
 
+            # Plot Background Curve if available
+            if self.background_curve_data[i] is not None:
+                x_background, y_background = self.background_curve_data[i]
+                # crop x_background to the frequency range
+                mask = (x_background >= self.f_start_value) & (x_background <= self.f_stop_value)
+                x_background_filtered = x_background[mask]
+                y_background_filtered = y_background[mask]
+                canvas.axes.plot(x_background_filtered, y_background_filtered, label='Background Curve')
+
+
             canvas.axes.set_xlabel('Frequency (Hz)')
             canvas.axes.set_ylabel(selected_key)
             canvas.axes.set_xscale('log')
