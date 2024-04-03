@@ -10,6 +10,7 @@ import time
 import warnings
 from pint import UnitRegistry
 import numpy as np
+import pandas as pd
 
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
@@ -82,6 +83,19 @@ class MplCanvas(FigureCanvas):
         self.axes = fig.add_subplot(111)
         super().__init__(fig)
 
+    def add_curve(self, x_data, y_data, label=None):
+        """
+        Adds a curve to the plot with the given x and y data.
+        :param x_data:
+        :param y_data:
+        :param label:
+        :return:
+        """
+        self.axes.plot(x_data, y_data, label=label)
+        self.draw()
+
+
+
 
 class MainGUI(QMainWindow):
     """
@@ -105,6 +119,7 @@ class MainGUI(QMainWindow):
 
     def __init__(self, config_dict=None):
         super().__init__()
+        self.background_buttons = None
         self.config_dict = config_dict
         self.slider_precision = None
         self.plot_layout = None
@@ -129,6 +144,8 @@ class MainGUI(QMainWindow):
         self.grid_layout = None
         self.inputs = None
         self.latest_results = None
+        self.background_curve_data = None
+        self.reset_background_buttons = None
 
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 2560, 1440)  # Adjust size as needed
@@ -290,8 +307,11 @@ class MainGUI(QMainWindow):
         self.toolbars = []
         self.checkboxes = []
         self.comboboxes = []
+        self.background_buttons = []
+        self.background_curve_data = [None] * number_of_plots
+        self.reset_background_buttons = []
 
-        for canvas in self.canvases:
+        for i, canvas in enumerate(self.canvases):
             canvas_layout = QVBoxLayout()
             top_layout = QHBoxLayout()
             canvas_layout.addLayout(top_layout)
@@ -310,9 +330,19 @@ class MainGUI(QMainWindow):
             combo_box.currentIndexChanged.connect(self.update_plot)
             self.comboboxes.append(combo_box)
 
+            background_button = QPushButton("Load Background curve")
+            self.background_buttons.append(background_button)
+            background_button.clicked.connect(lambda _, idx=i: self.load_background_curve(idx))
+
+            reset_background_button = QPushButton("Reset Background curve")
+            self.reset_background_buttons.append(reset_background_button)
+            reset_background_button.clicked.connect(lambda _, idx=i: self.reset_background_curve(idx))
+
             top_layout.addWidget(toolbar)
             top_layout.addWidget(checkbox)
             top_layout.addWidget(combo_box)
+            top_layout.addWidget(background_button)
+            top_layout.addWidget(reset_background_button)
 
             canvas_layout.addWidget(canvas)
 
@@ -386,6 +416,24 @@ class MainGUI(QMainWindow):
 
         export_results_btn = file_menu.addAction('&Export results')
         export_results_btn.triggered.connect(self.export_results)
+
+    def load_background_curve(self, canvas_index):
+        try :
+            file_path, _ = QFileDialog.getOpenFileName(self, "Select Background Curve File", "", "CSV Files (*.csv)")
+            if file_path:
+                x_data, y_data = self.load_and_normalize_curve(file_path)
+                self.background_curve_data[canvas_index] = (x_data, y_data)
+                print(f"Background curve loaded from {file_path} for plot {canvas_index}")
+                print(f"Background curve loaded for plot {canvas_index}")
+                self.update_plot(canvas_index)
+        except Exception as e:
+            self.display_error(f"Error loading background curve: {e}")
+            self.reset_background_curve(canvas_index)
+
+    def reset_background_curve(self, canvas_index):
+        self.background_curve_data[canvas_index] = None
+        self.update_plot(canvas_index)
+        print(f"Background curve reset for plot {canvas_index}")
 
     def export_results(self):
         """
@@ -463,33 +511,35 @@ class MainGUI(QMainWindow):
         Exported parameters can be imported back into the application.
         :return:
         """
-        fileName, _ = QFileDialog.getSaveFileName(self, "Save Parameters", "", "JSON Files (*.json)")
-        if not fileName:
-            return  # User canceled the dialog
+        try :
+            fileName, _ = QFileDialog.getSaveFileName(self, "Save Parameters", "", "JSON Files (*.json)")
+            if not fileName:
+                return  # User canceled the dialog
 
-        # Prepare the parameters with updated defaults based on current GUI inputs
-        updated_parameters = self.input_parameters.copy()
-        for section_name, parameters in updated_parameters.items():
-            for param_name in parameters:
-                # Check if this parameter has an input field in the GUI
-                if param_name in self.inputs:
-                    line_edit = self.inputs[param_name]
-                    current_value = line_edit.text()
+            # Prepare the parameters with updated defaults based on current GUI inputs
+            updated_parameters = self.input_parameters.copy()
+            for section_name, parameters in updated_parameters.items():
+                for param_name in parameters:
+                    # Check if this parameter has an input field in the GUI
+                    if param_name in self.inputs:
+                        line_edit = self.inputs[param_name]
+                        current_value = line_edit.text()
 
-                    # Attempt to convert the current value to a float, if possible
-                    try:
-                        current_value_float = float(current_value)
-                        # Update the "default" value for this parameter
-                        parameters[param_name]['default'] = current_value_float
-                    except ValueError:
-                        # Handle the case where the current value is not a valid float
-                        print(f"Warning: Skipping parameter '{param_name}' with non-numeric input '{current_value}'.")
+                        # Attempt to convert the current value to a float, if possible
+                        try:
+                            current_value_float = float(current_value)
+                            # Update the "default" value for this parameter
+                            parameters[param_name]['default'] = current_value_float
+                        except ValueError:
+                            # Handle the case where the current value is not a valid float
+                            print(
+                                f"Warning: Skipping parameter '{param_name}' with non-numeric input '{current_value}'.")
 
-        # If a file name is selected, save the updated parameters to that file
-        with open(fileName, 'w') as json_file:
-            json.dump(updated_parameters, json_file, indent=4)
-
-        print(f"Parameters exported to {fileName}")
+            # If a file name is selected, save the updated parameters to that file
+            with open(fileName, 'w') as json_file:
+                json.dump(updated_parameters, json_file, indent=4)
+        except Exception as e:
+            self.display_error(f"Error exporting parameters: {e}")
 
     def import_parameters_from_json(self):
         """
@@ -499,14 +549,28 @@ class MainGUI(QMainWindow):
         :return:
         """
         # Show an open file dialog to the user
-        fileName, _ = QFileDialog.getOpenFileName(self, "Import Parameters", "", "JSON Files (*.json)")
-        if fileName:
-            # If a file is selected, load the parameters from that file
-            with open(fileName, 'r', encoding="utf-8") as json_file:
-                self.input_parameters = json.load(json_file)
-                self.reset_parameters()  # Update the UI with the imported parameters
-            print(f"Parameters imported from {fileName}")
+        try :
+            fileName, _ = QFileDialog.getOpenFileName(self, "Import Parameters", "", "JSON Files (*.json)")
+            if fileName:
+                # If a file is selected, load the parameters from that file
+                with open(fileName, 'r', encoding="utf-8") as json_file:
+                    self.input_parameters = json.load(json_file)
+                    self.reset_parameters()  # Update the UI with the imported parameters
+                print(f"Parameters imported from {fileName}")
+        except Exception as e:
+            self.display_error(f"Error importing parameters: {e}")
+            self.reset_parameters()
 
+    def load_and_normalize_curve(self, file_path):
+        """
+        Loads a curve from a CSV file and return x and y data.
+        :param file_path: FULL path to the CSV file
+        :return: x_data, y_data
+        """
+        df = pd.read_csv(file_path)
+        x_data = df.iloc[:, 0].values
+        y_data = df.iloc[:, 1].values
+        return x_data, y_data
 
     def log_scale(self, value, min_val, max_val, min_log, max_log):
         """Converts a linear slider value to a logarithmic frequency value."""
@@ -705,7 +769,7 @@ class MainGUI(QMainWindow):
         print(f"Calculation failed: {error_message}")
         # use a QMessageBox for GUI error display
 
-        QMessageBox.critical(self, "Calculation Error", f"Calculation failed: {error_message}")
+        QMessageBox.critical(self, "An error occurred", f"Calculation failed: {error_message}")
 
 
 
@@ -791,6 +855,15 @@ class MainGUI(QMainWindow):
                             canvas.axes.set_yscale('log')
                         except UserWarning:
                             canvas.axes.set_yscale('linear')
+
+                # Plot background curve if available
+                if self.background_curve_data[i] is not None:
+                    x_background, y_background = self.background_curve_data[i]
+                    # crop x_background to the frequency range
+                    mask = (x_background >= self.f_start_value) & (x_background <= self.f_stop_value)
+                    x_background_filtered = x_background[mask]
+                    y_background_filtered = y_background[mask]
+                    canvas.axes.plot(x_background_filtered, y_background_filtered,label='Background Curve')
 
                 # Repeat plotting logic for old data if checkbox is checked
             if checkbox.isChecked() and old_results:

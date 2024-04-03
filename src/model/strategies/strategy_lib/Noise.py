@@ -159,7 +159,6 @@ class PSD_e_en_filtered(CalculationStrategy):
 
 
 class PSD_e_in(CalculationStrategy):
-
     def calculate(self, dependencies: dict, parameters: InputParameters):
         impedance = dependencies['impedance'][:,1]
         e_in = parameters.data['e_in']
