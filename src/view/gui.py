@@ -326,6 +326,19 @@ class MainGUI(QMainWindow):
 
         for i, canvas in enumerate(self.canvases):
             canvas_layout = QVBoxLayout()
+
+            btn1 = QPushButton("1")
+            btn2 = QPushButton("2")
+            btn3 = QPushButton("3")
+            btnC = QPushButton("C")
+
+            # retract the buttons to minimum width
+            btn1.setMaximumWidth(30)
+            btn2.setMaximumWidth(30)
+            btn3.setMaximumWidth(30)
+            btnC.setMaximumWidth(30)
+
+
             top_layout = QHBoxLayout()
             canvas_layout.addLayout(top_layout)
 
@@ -353,6 +366,11 @@ class MainGUI(QMainWindow):
 
             top_layout.addWidget(toolbar)
             top_layout.addWidget(checkbox)
+            # add button to layout
+            top_layout.addWidget(btn1)
+            top_layout.addWidget(btn2)
+            top_layout.addWidget(btn3)
+            top_layout.addWidget(btnC)
             top_layout.addWidget(combo_box)
             top_layout.addWidget(background_button)
             top_layout.addWidget(reset_background_button)
@@ -404,13 +422,16 @@ class MainGUI(QMainWindow):
         else:
             self.init_canvas()
 
+        param_proportion = 2
+        plot_proportion = 4
         # set proportions
         try :
-            param_proportion = self.config_dict["param_proportion"]
-            plot_proportion = self.config_dict["plot_proportion"]
+            if self.config_dict is not None:
+                param_proportion = self.config_dict["param_proportion"]
+                plot_proportion = self.config_dict["plot_proportion"]
         except KeyError:
-            param_proportion = 2
-            plot_proportion = 4
+            print("Error while setting proportions")
+
         self.main_layout.addLayout(self.params_layout, param_proportion)
         self.main_layout.addLayout(self.plot_layout, plot_proportion)
 
