@@ -884,7 +884,11 @@ class MainGUI(QMainWindow):
                 x_values = data[:, 0]
                 for col_index in range(1, data.shape[1]):
                     y_values = data[:, col_index]
-                    canvas.axes.plot(x_values, y_values, label=f"{label}_{col_index}", linestyle=linestyle)
+                    mask = (x_values >= self.f_start_value) & (x_values <= self.f_stop_value)
+                    x_values_filtered = x_values[mask]
+                    y_values_filtered = y_values[mask]
+
+                    canvas.axes.plot(x_values_filtered, y_values_filtered, label=f"{label}_{col_index}", linestyle=linestyle)
 
 
         for i, (canvas, combo_box, checkbox) in enumerate(zip(self.canvases, self.comboboxes, self.checkboxes)):
