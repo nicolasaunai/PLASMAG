@@ -408,3 +408,56 @@ class NEMI_FIltered(CalculationStrategy):
     @staticmethod
     def get_dependencies():
         return ['PSD_Total_filtered', 'CLTF_Filtered', 'frequency_vector']
+
+
+class NEMI_FIlteredv2(CalculationStrategy):
+
+    def calculate(self, dependencies: dict, parameters: InputParameters):
+        PSD_Total_filtered = dependencies['PSD_Total_filtered']["data"][:,1]
+        CLTF_Filtered = dependencies['CLTF_Filtered']["data"][:,1]
+        frequency_vector = dependencies['frequency_vector']["data"]
+
+        PSD_Total_filtered = 20*np.log10(PSD_Total_filtered)
+        CLTF_Filtered = 20*np.log10(CLTF_Filtered)
+
+        result = (PSD_Total_filtered - CLTF_Filtered)
+
+        result = 10**(result/200)
+
+        values = np.column_stack((frequency_vector, result))
+
+        return {
+            "data": values,
+            "labels": ["Frequency", "NEMI"],
+            "units": ["Hz", ""]
+        }
+
+    @staticmethod
+    def get_dependencies():
+        return ['PSD_Total_filtered', 'CLTF_Filtered', 'frequency_vector']
+
+class NEMI_FIlteredv3(CalculationStrategy):
+
+    def calculate(self, dependencies: dict, parameters: InputParameters):
+        PSD_Total_filtered = dependencies['PSD_Total_filtered']["data"][:,1]
+        CLTF_Filtered = dependencies['CLTF_Filtered']["data"][:,1]
+        frequency_vector = dependencies['frequency_vector']["data"]
+
+        PSD_Total_filtered = 20*np.log10(PSD_Total_filtered)
+        CLTF_Filtered = 20*np.log10(CLTF_Filtered)
+
+        result = (PSD_Total_filtered - CLTF_Filtered)
+
+        result = 100**(result/20)
+
+        values = np.column_stack((frequency_vector, result))
+
+        return {
+            "data": values,
+            "labels": ["Frequency", "NEMI"],
+            "units": ["Hz", ""]
+        }
+
+    @staticmethod
+    def get_dependencies():
+        return ['PSD_Total_filtered', 'CLTF_Filtered', 'frequency_vector']

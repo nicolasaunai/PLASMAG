@@ -5,7 +5,7 @@
 
 from src.model.strategies.strategy_lib.Noise import PSD_R_cr, PSD_R_cr_filtered, PSD_R_Coil, PSD_R_Coil_filtered, \
     PSD_Flicker, PSD_e_en, PSD_e_en_filtered, PSD_e_in, PSD_e_in_filtered, PSD_Total, PSD_Total_filtered, \
-    Display_all_PSD, NEMI, Display_all_PSD_filtered, NEMI_FIltered
+    Display_all_PSD, NEMI, Display_all_PSD_filtered, NEMI_FIltered, NEMI_FIlteredv2, NEMI_FIlteredv3
 from src.model.strategies.strategy_lib.CLTF import CLTF_Strategy_Filtered, \
     CLTF_Strategy_Non_Filtered_legacy, Display_CLTF_OLTF
 from src.model.strategies.strategy_lib.OLTF import OLTF_Strategy_Non_Filtered, OLTF_Strategy_Filtered
@@ -148,7 +148,7 @@ STRATEGY_MAP = {
     },
     "NEMI_FIltered": {
         "default": NEMI_FIltered,
-        "strategies": [NEMI_FIltered]
+        "strategies": [NEMI_FIltered,NEMI_FIlteredv2, NEMI_FIlteredv3]
     }
 }
 class CalculationController:
