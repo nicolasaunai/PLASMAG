@@ -123,7 +123,4 @@ class CalculationNode:
             strategy (CalculationStrategy): The new strategy to use for calculations.
         """
         self._strategy = strategy
-
-        # Invalidate the previously calculated value for this node to ensure recalculation
-        self.engine.current_output_data.set_result(self.name, None)
         self.mark_for_recalculation()

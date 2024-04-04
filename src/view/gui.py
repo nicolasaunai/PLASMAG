@@ -24,8 +24,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 from qtrangeslider import QRangeSlider
-from src.controler.controller import CalculationController
-
+from src.controler.controller import CalculationController, STRATEGY_MAP
 
 ureg: UnitRegistry = UnitRegistry()
 
@@ -1057,7 +1056,65 @@ class MainGUI(QMainWindow):
             print(f"Invalid input for '{parameter}': '{text}' is not a valid number.")
 
     def init_strategy_selection(self):
-        pass
+        strategy_selection_widget = QWidget()
+        strategy_selection_layout = QGridLayout()
+        strategy_selection_widget.setLayout(strategy_selection_layout)
+
+        strategy_selection_layout.setSpacing(10)
+
+        row = 0
+        for node_name, strategies_info in STRATEGY_MAP.items():
+            if len(strategies_info["strategies"]) > 1:
+                label = QLabel(f"{node_name} strategy:")
+                label.setStyleSheet("font-weight: bold; font-size: 14px")
+
+                combo_box = QComboBox()
+                for strategy in strategies_info["strategies"]:
+                    combo_box.addItem(strategy.__name__, strategy)
+                default_strategy = strategies_info["default"]
+                combo_box.setCurrentIndex(combo_box.findText(default_strategy.__name__))
+
+                combo_box.currentIndexChanged.connect(
+                    lambda index, name=node_name, cb=combo_box: self.update_node_strategy(name, cb.currentData()))
+
+                strategy_selection_layout.addWidget(label, row, 0)
+                strategy_selection_layout.addWidget(combo_box, row, 1)
+                row += 1
+
+        strategy_selection_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding), row, 0)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(strategy_selection_widget)
+        self.strategy_tab.setLayout(QVBoxLayout())
+        self.strategy_tab.layout().addWidget(scroll_area)
+
+    def update_node_strategy(self, node_name, strategy_class):
+        print(f"Gui - try to update strategy for {node_name} to {strategy_class.__name__}")
+
+        params_dict = {}
+        for category, parameters in self.input_parameters.items():
+            for param, attrs in parameters.items():
+                if param in ['f_start', 'f_stop']:
+                    params_dict[param] = getattr(self, f"{param}_value")
+                    continue
+
+                if param in self.inputs:
+                    text = self.inputs[param].text()
+                    try:
+                        value = float(text)
+                        input_unit = attrs.get('input_unit', '')
+                        target_unit = attrs.get('target_unit', '')
+                        if input_unit and target_unit:
+                            value_converted = convert_unit(value, input_unit, target_unit)
+                        else:
+                            value_converted = value
+                        params_dict[param] = value_converted
+                    except ValueError:
+                        print(f"Invalid input for parameter '{param}': '{text}'. Skipping calculation.")
+                        return
+
+        self.controller.set_node_strategy(node_name, strategy_class, params_dict)
 
 
 if __name__ == "__main__":
