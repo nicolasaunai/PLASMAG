@@ -15,7 +15,7 @@ import pandas as pd
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea, QFileDialog, \
-    QMessageBox, QInputDialog
+    QMessageBox, QInputDialog, QTabWidget
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QSplashScreen, QApplication
 
@@ -407,7 +407,6 @@ class MainGUI(QMainWindow):
 
             self.plot_layout.addLayout(canvas_layout)
 
-
     def init_ui(self):
         """
         Initializes the graphical user interface by setting up the main layout, input fields,
@@ -422,47 +421,57 @@ class MainGUI(QMainWindow):
 
         self.init_timer()
 
-        self.params_layout = QVBoxLayout()
+        # Creating a QTabWidget for organizing parameters and  other tabs
+        self.tabs = QTabWidget()
+        self.param_tab = QWidget()  # QWidget that will contain the parameters layout as a tab
+        self.strategy_tab = QWidget()  # QWidget that will contain the strategy selection layout as a tab
 
-        # Grid layout for parameters
-        self.grid_layout = QGridLayout()
+        self.params_layout = QVBoxLayout(self.param_tab)
+        self.strategy_layout = QVBoxLayout(self.strategy_tab)
+
+        # Grid layout for parameter inputs
+        self.grid_layout = QGridLayout() # Grid layout for global sliders
         self.init_parameters_input()
 
-        # Add Reset Parameters button
         self.reset_params_btn = QPushButton('Reset Parameters')
         self.reset_params_btn.clicked.connect(self.reset_parameters)
         self.params_layout.addWidget(self.reset_params_btn)
 
-        # Calculate button
         self.calculate_btn = QPushButton('Calculate')
         self.calculate_btn.clicked.connect(self.calculate)
         self.params_layout.addWidget(self.calculate_btn)
 
         self.init_sliders()
 
+        self.tabs.addTab(self.param_tab, "Parameters")
+        self.tabs.addTab(self.strategy_tab, "Strategy Selection")
+
+        self.init_strategy_selection()
+
         self.plot_layout = QVBoxLayout()
 
-
+        # Initialize canvas based on configuration, if provided
         if self.config_dict is not None:
             self.init_canvas(self.config_dict["number_of_plots"])
         else:
             self.init_canvas()
 
-        param_proportion = 2
-        plot_proportion = 4
-        # set proportions
-        try :
+        param_proportion = 2  # Default proportion for parameter layout
+        plot_proportion = 4  # Default proportion for plot layout
+        # Set proportions based on configuration, if available
+        try:
             if self.config_dict is not None:
                 param_proportion = self.config_dict["param_proportion"]
                 plot_proportion = self.config_dict["plot_proportion"]
         except KeyError:
             print("Error while setting proportions")
 
-        self.main_layout.addLayout(self.params_layout, param_proportion)
+        # Add the tabs widget and the plot layout to the main layout with specified proportions
+        self.main_layout.addWidget(self.tabs, param_proportion)
         self.main_layout.addLayout(self.plot_layout, plot_proportion)
 
-        # For the moment we have 3 save buttons for each plot, so 3 backups_count
-        self.init_controller(backups_count=len(self.canvases))
+        # Initialize controllers, assuming there are as many save buttons as there are canvases
+        self.init_controller(backups_count=3)
 
     def init_menu(self):
         """
@@ -560,6 +569,10 @@ class MainGUI(QMainWindow):
             if key == 'frequency_vector':  # Skip the frequency vector itself
                 continue
             if key == 'Display_all_PSD':
+                continue
+            if key == 'Display_all_PSD_filtered':
+                continue
+            if key == 'Display_CLTF_OLTF':
                 continue
 
             if np.isscalar(value):
@@ -1042,6 +1055,9 @@ class MainGUI(QMainWindow):
             # Indicate invalid input with a red background
             line_edit.setStyleSheet("background-color: #ffaaaa;")
             print(f"Invalid input for '{parameter}': '{text}' is not a valid number.")
+
+    def init_strategy_selection(self):
+        pass
 
 
 if __name__ == "__main__":
