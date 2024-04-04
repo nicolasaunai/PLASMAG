@@ -18,18 +18,24 @@ class AnalyticalCapacitanceStrategy(CalculationStrategy):
         coeff_expansion = parameters.data['coeff_expansion']
         nb_spire = parameters.data['nb_spire']
 
-        mu_app = dependencies['mu_app']
+        mu_app = dependencies['mu_app']['data']
 
         nb_spire_per_layer = int(len_coil / (diam_wire * coeff_expansion))
         nb_layer = int(nb_spire / nb_spire_per_layer) + 1
 
-        return (
+        result = (
                 (np.pi * (mu_0 * 4 * np.pi * 10**-7) * mu_insulator * len_coil) /
                 ((kapthon_thick + 2 * insulator_thick) * nb_layer ** 2)
                 * ((nb_layer - 1) * diam_out_mandrel * 1 / 2 + nb_layer * (nb_layer - 1) * (
                     diam_wire * kapthon_thick) / 2)
                 + capa_tuning + capa_triwire
         )
+
+        return {
+            "data": result,
+            "labels": ["Capacitance"],
+            "units": ["F"]
+        }
 
     @staticmethod
     def get_dependencies():

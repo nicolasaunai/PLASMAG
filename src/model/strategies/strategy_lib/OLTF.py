@@ -10,19 +10,25 @@ class OLTF_Strategy_Non_Filtered(CalculationStrategy):
     def calculate(self, dependencies: dict, parameters: InputParameters):
         nb_spire = parameters.data['nb_spire']
         ray_spire = parameters.data['ray_spire']
-        mu_app = dependencies['mu_app']
-        frequency_vector = dependencies['frequency_vector']
-        linear_TF_ASIC_Stage_1 = dependencies['TF_ASIC_Stage_1_linear'][:,1]
 
-        inductance = dependencies['inductance']
-        capacitance = dependencies['capacitance']
-        resistance = dependencies['resistance']
+        mu_app = dependencies['mu_app']['data']
+        frequency_vector = dependencies['frequency_vector']['data']
+        linear_TF_ASIC_Stage_1 = dependencies['TF_ASIC_Stage_1']['data'][:,1]
+        inductance = dependencies['inductance']['data']
+        capacitance = dependencies['capacitance']['data']
+        resistance = dependencies['resistance']['data']
 
         vectorized_oltf = np.vectorize(self.calculate_oltf)
         oltf_values = vectorized_oltf(nb_spire, ray_spire, mu_app, frequency_vector, linear_TF_ASIC_Stage_1, inductance, capacitance, resistance)
 
         frequency_oltf_tensor = np.column_stack((frequency_vector, oltf_values))
-        return frequency_oltf_tensor
+        value =  frequency_oltf_tensor
+
+        return {
+            "data": value,
+            "labels": ["Frequency", "Gain"],
+            "units": ["Hz", ""]
+        }
 
     def calculate_oltf(self,
                        nb_spire,
@@ -38,25 +44,29 @@ class OLTF_Strategy_Non_Filtered(CalculationStrategy):
 
     @staticmethod
     def get_dependencies():
-        return ['nb_spire', 'ray_spire', 'mu_app', 'frequency_vector', 'TF_ASIC_Stage_1_linear', 'inductance', 'capacitance', 'resistance']
+        return ['nb_spire', 'ray_spire', 'mu_app', 'frequency_vector', 'TF_ASIC_Stage_1', 'inductance', 'capacitance', 'resistance']
 
 
 
 class OLTF_Strategy_Filtered(CalculationStrategy):
 
     def calculate(self, dependencies: dict, parameters: InputParameters):
-        OLTF_Non_filtered = 20*np.log10(dependencies['OLTF_Non_filtered'][:,1]) # linear
-        TF_ASIC_Stage_2_linear = 20*np.log10(dependencies['TF_ASIC_Stage_2_linear'][:,1]) # linear
+        OLTF_Non_filtered = 20*np.log10(dependencies['OLTF_Non_filtered']['data'][:,1]) # linear
+        TF_ASIC_Stage_2 = 20*np.log10(dependencies['TF_ASIC_Stage_2']['data'][:,1]) # linear
 
-        result = (OLTF_Non_filtered + TF_ASIC_Stage_2_linear)
+        result = (OLTF_Non_filtered + TF_ASIC_Stage_2)
 
         result = 10**(result/20)
 
-        return np.column_stack((dependencies['OLTF_Non_filtered'][:,0], result))
+        result = np.column_stack((dependencies['OLTF_Non_filtered']['data'][:,0], result))
 
-
+        return {
+            "data": result,
+            "labels": ["Frequency", "Gain"],
+            "units": ["Hz", ""]
+        }
 
     @staticmethod
     def get_dependencies():
-        return ['OLTF_Non_filtered', 'TF_ASIC_Stage_2_linear']
+        return ['OLTF_Non_filtered', 'TF_ASIC_Stage_2']
 

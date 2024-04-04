@@ -11,8 +11,14 @@ class FrequencyVectorStrategy(CalculationStrategy):
         nb_points_per_decade = parameters.data['nb_points_per_decade']
         frequency_vector = np.logspace(np.log10(f_start), np.log10(f_stop),
                                        int((np.log10(f_stop) - np.log10(f_start)) * nb_points_per_decade))
-        return frequency_vector
+        return {
+            "data": frequency_vector,
+            "labels": ["Frequency"],
+            "units": ["Hz"]
+        }
 
     @staticmethod
     def get_dependencies():
         return ['f_start', 'f_stop', 'nb_points_per_decade']
+
+

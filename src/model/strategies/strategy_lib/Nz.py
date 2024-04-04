@@ -9,7 +9,13 @@ class AnalyticalNzStrategy(CalculationStrategy):
     def calculate(self, dependencies: dict, parameters: InputParameters):
         diam_core = parameters.data['diam_core']
         len_core = parameters.data['len_core']
-        return diam_core /(2 * (len_core) + diam_core)
+        result = diam_core /(2 * (len_core) + diam_core)
+
+        return {
+            "data": result,
+            "units" : [""],
+            "labels" : ["Nz"]
+        }
 
     @staticmethod
     def get_dependencies():

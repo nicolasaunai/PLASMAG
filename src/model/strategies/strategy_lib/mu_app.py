@@ -10,8 +10,14 @@ class AnalyticalMu_appStrategy(CalculationStrategy):
 
     def calculate(self, dependencies: dict, parameters: InputParameters):
         mu_r = parameters.data['mu_r']
-        Nz = dependencies['Nz']
-        return mu_r / (1 + (Nz * (mu_r - 1)))
+        Nz = dependencies['Nz']['data']
+        result = mu_r / (1 + (Nz * (mu_r - 1)))
+
+        return {
+            "data": result,
+            "labels": ["Mu_app"],
+            "units": [""]
+        }
 
     @staticmethod
     def get_dependencies():

@@ -873,52 +873,59 @@ class MainGUI(QMainWindow):
         QMessageBox.critical(self, "An error occurred", f"Calculation failed: {error_message}")
 
     def update_plot(self, index):
-        def plot_curve(data, label, linestyle='-', color=None):
-            """Plot a curve on the canvas."""
+        def plot_curve(data_with_meta, linestyle='-', color=None):
+            """Plot a curve with metadata."""
+            data = data_with_meta["data"]
+            labels = data_with_meta.get("labels", ["", ""])
+            units = data_with_meta.get("units", ["", ""])
+
+            # Determine if the data is scalar, vector, or ndim
             if np.isscalar(data):
                 y_values = np.full_like(frequency_vector, data)
-                canvas.axes.plot(frequency_vector, y_values, label=label, linestyle=linestyle, color=color)
-            elif data.ndim == 1:
-                canvas.axes.plot(frequency_vector, data, label=label, linestyle=linestyle, color=color)
-            elif data.ndim > 1:
-                x_values = data[:, 0]
+                canvas.axes.plot(frequency_vector, y_values, label=f"{labels[0]} ({units[0]})", linestyle=linestyle,
+                                 color=color)
+            elif isinstance(data, np.ndarray) and data.ndim == 1:
+                canvas.axes.plot(frequency_vector, data, label=f"{labels[0]} ({units[0]})", linestyle=linestyle,
+                                 color=color)
+            elif isinstance(data, np.ndarray) and data.ndim > 1:
+                # Assuming the first column is x-axis and subsequent columns are y-axis values
                 for col_index in range(1, data.shape[1]):
                     y_values = data[:, col_index]
-                    mask = (x_values >= self.f_start_value) & (x_values <= self.f_stop_value)
-                    x_values_filtered = x_values[mask]
-                    y_values_filtered = y_values[mask]
-
-                    canvas.axes.plot(x_values_filtered, y_values_filtered, label=f"{label}_{col_index}", linestyle=linestyle)
-
-
+                    # Applying filtering based on frequency range, if applicable
+                    mask = (data[:, 0] >= self.f_start_value) & (data[:, 0] <= self.f_stop_value)
+                    x_filtered = data[mask, 0]
+                    y_filtered = y_values[mask]
+                    curve_label = labels[col_index] if len(labels) > col_index else f"Curve {col_index}"
+                    canvas.axes.plot(x_filtered, y_filtered, label=f"{curve_label} ({units[col_index]})",
+                                     linestyle=linestyle, color=color)
         for i, (canvas, combo_box, checkbox) in enumerate(zip(self.canvases, self.comboboxes, self.checkboxes)):
             selected_key = combo_box.currentText()
             if not selected_key:
-                continue  # Skip if no key is selected
+                continue
 
             canvas.axes.clear()  # Clear the canvas for new plotting
 
             current_results = self.controller.get_current_results()
             old_results = self.controller.get_old_results()
-            frequency_vector = current_results.get('frequency_vector', [])
+            frequency_vector = current_results.get('frequency_vector', [])["data"]
 
             # Plot Current Data
-            current_data = current_results.get(selected_key)
-            if current_data is not None:
-                plot_curve(current_data, 'Current', linestyle='-')
+            current_data_meta = current_results.get(selected_key, {})
+            if current_data_meta:
+                plot_curve(current_data_meta, linestyle='-')
 
             # Plot Old Data if checkbox is checked
             if checkbox.isChecked() and old_results:
-                old_data = old_results.get(selected_key)
-                if old_data is not None:
-                    plot_curve(old_data, 'Old', linestyle='--')
+                old_data_meta = old_results.get(selected_key, {})
+                if old_data_meta:
+                    plot_curve(old_data_meta, linestyle='--', color='gray')
 
             # Plot Saved Data from saved_data_results
             for saved_index, saved_results in enumerate(self.controller.engine.saved_data_results):
-                saved_data = saved_results.results.get(selected_key)
-                if saved_data is not None:
+                saved_data_meta = saved_results.results.get(selected_key, {})
+                if saved_data_meta:
                     plot_label = f'Saved {saved_index + 1}'
-                    plot_curve(saved_data, plot_label, linestyle=':')
+                    plot_curve(saved_data_meta, linestyle=':', color=None)  # Color is auto-assigned
 
             # Plot Background Curve if available
             if self.background_curve_data[i] is not None:
@@ -929,12 +936,10 @@ class MainGUI(QMainWindow):
                 y_background_filtered = y_background[mask]
                 canvas.axes.plot(x_background_filtered, y_background_filtered, label='Background Curve')
 
-
-            canvas.axes.set_xlabel('Frequency (Hz)')
+            canvas.axes.set_xlabel("Frequency (Hz)")
             canvas.axes.set_ylabel(selected_key)
             canvas.axes.set_xscale('log')
             canvas.axes.set_yscale('log')
-
             canvas.axes.grid(which='both')
             canvas.axes.legend()
             canvas.draw()

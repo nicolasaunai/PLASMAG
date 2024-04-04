@@ -5,9 +5,9 @@
 
 from src.model.strategies.strategy_lib.Noise import PSD_R_cr, PSD_R_cr_filtered, PSD_R_Coil, PSD_R_Coil_filtered, \
     PSD_Flicker, PSD_e_en, PSD_e_en_filtered, PSD_e_in, PSD_e_in_filtered, PSD_Total, PSD_Total_filtered, \
-    Display_all_PSD, NEMI
+    Display_all_PSD, NEMI, Display_all_PSD_filtered, NEMI_FIltered
 from src.model.strategies.strategy_lib.CLTF import CLTF_Strategy_Filtered, \
-    CLTF_Strategy_Non_Filtered_legacy
+    CLTF_Strategy_Non_Filtered_legacy, Display_CLTF_OLTF
 from src.model.strategies.strategy_lib.OLTF import OLTF_Strategy_Non_Filtered, OLTF_Strategy_Filtered
 from src.model.strategies.strategy_lib.TF_ASIC import TF_ASIC_Stage_1_Strategy_linear,  \
     TF_ASIC_Stage_2_Strategy_linear, TF_ASIC_Strategy_linear
@@ -42,6 +42,7 @@ class CalculationController:
         """
         self.engine = CalculationEngine(backups_count=backups_count)
 
+
         self.engine.add_or_update_node('frequency_vector', FrequencyVectorStrategy())
         self.engine.add_or_update_node('resistance', AnalyticalResistanceStrategy())
         self.engine.add_or_update_node('Nz', AnalyticalNzStrategy())
@@ -49,40 +50,44 @@ class CalculationController:
         self.engine.add_or_update_node('lambda_param', AnalyticalLambdaStrategy())
         self.engine.add_or_update_node('inductance', AnalyticalInductanceStrategy())
         self.engine.add_or_update_node('capacitance', AnalyticalCapacitanceStrategy())
-
+        #
         self.engine.add_or_update_node('impedance', AnalyticalImpedanceStrategy())
-
-        self.engine.add_or_update_node('TF_ASIC_Stage_1_linear', TF_ASIC_Stage_1_Strategy_linear())
-        self.engine.add_or_update_node('TF_ASIC_Stage_2_linear', TF_ASIC_Stage_2_Strategy_linear())
-
+        #
+        self.engine.add_or_update_node('TF_ASIC_Stage_1', TF_ASIC_Stage_1_Strategy_linear())
+        self.engine.add_or_update_node('TF_ASIC_Stage_2', TF_ASIC_Stage_2_Strategy_linear())
+        #
         self.engine.add_or_update_node('TF_ASIC_linear', TF_ASIC_Strategy_linear())
-
+        #
         self.engine.add_or_update_node('OLTF_Non_filtered', OLTF_Strategy_Non_Filtered())
         self.engine.add_or_update_node('OLTF_Filtered', OLTF_Strategy_Filtered())
-
+        #
         self.engine.add_or_update_node('CLTF_Non_filtered', CLTF_Strategy_Non_Filtered_legacy())
         self.engine.add_or_update_node('CLTF_Filtered', CLTF_Strategy_Filtered())
 
+        self.engine.add_or_update_node('Display_CLTF_OLTF', Display_CLTF_OLTF())
+        #
         self.engine.add_or_update_node('PSD_R_cr', PSD_R_cr())
         self.engine.add_or_update_node('PSD_R_cr_filtered', PSD_R_cr_filtered())
-
+        #
         self.engine.add_or_update_node('PSD_R_Coil', PSD_R_Coil())
         self.engine.add_or_update_node('PSD_R_Coil_filtered', PSD_R_Coil_filtered())
-
+        #
         self.engine.add_or_update_node('PSD_Flicker', PSD_Flicker())
-
+        #
         self.engine.add_or_update_node('PSD_e_en', PSD_e_en())
         self.engine.add_or_update_node('PSD_e_en_filtered', PSD_e_en_filtered())
-
+        #
         self.engine.add_or_update_node('PSD_e_in', PSD_e_in())
         self.engine.add_or_update_node('PSD_e_in_filtered', PSD_e_in_filtered())
-
+        #
         self.engine.add_or_update_node('PSD_Total', PSD_Total())
         self.engine.add_or_update_node('PSD_Total_filtered', PSD_Total_filtered())
-
+        #
         self.engine.add_or_update_node('Display_all_PSD', Display_all_PSD())
-
+        self.engine.add_or_update_node('Display_all_PSD_filtered', Display_all_PSD_filtered())
+        #
         self.engine.add_or_update_node('NEMI', NEMI())
+        self.engine.add_or_update_node('NEMI_FIltered', NEMI_FIltered())
 
         self.params = None
         if params_dict:
