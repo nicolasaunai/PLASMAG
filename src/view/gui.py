@@ -1115,6 +1115,7 @@ class MainGUI(QMainWindow):
                         return
 
         self.controller.set_node_strategy(node_name, strategy_class, params_dict)
+        self.calculate()
 
 
 if __name__ == "__main__":

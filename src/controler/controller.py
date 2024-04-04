@@ -23,13 +23,14 @@ from src.model.strategies.strategy_lib.mu_app import AnalyticalMu_appStrategy
 from src.model.strategies.strategy_lib.resistance import AnalyticalResistanceStrategy, AnalyticalResistanceStrategyv2
 
 STRATEGY_MAP = {
-    "frequency_vector": {
-        "default": FrequencyVectorStrategy,
-        "strategies": [FrequencyVectorStrategy]
-    },
+
     "resistance": {
         "default": AnalyticalResistanceStrategy,
         "strategies": [AnalyticalResistanceStrategy, AnalyticalResistanceStrategyv2]
+    },
+    "frequency_vector": {
+        "default": FrequencyVectorStrategy,
+        "strategies": [FrequencyVectorStrategy]
     },
     "Nz": {
         "default": AnalyticalNzStrategy,
@@ -255,10 +256,5 @@ class CalculationController:
         self.engine.clear_calculation_results()
 
     def set_node_strategy(self, node_name, strategy_class, params_dict):
-        print(f"Controller : {type(strategy_class)}")
-        print(f"Controller : {strategy_class.get_dependencies()}")
-
-
-
         strategy_instance = strategy_class()
         self.engine.swap_strategy_for_node(node_name, strategy_instance, params_dict)

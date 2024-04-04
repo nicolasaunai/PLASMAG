@@ -79,8 +79,10 @@ class CalculationEngine:
                 self.inverse_dependencies[dependency] = set()
             self.inverse_dependencies[dependency].add(node_name)
             if dependency in self.nodes:
-                for sub_dependency in self.nodes[dependency].get_strategy().get_dependencies():
-                    add_inverse_dependency(node_name, sub_dependency)
+                node_strategy = self.nodes[dependency].get_strategy()
+                if node_strategy:  # Protection against None strategy
+                    for sub_dependency in node_strategy.get_dependencies():
+                        add_inverse_dependency(node_name, sub_dependency)
 
         for node_name, node in self.nodes.items():
             if node.get_strategy():
@@ -285,6 +287,8 @@ class CalculationEngine:
                 downstream_nodes = self.inverse_dependencies[current_node]
                 affected_nodes.update(downstream_nodes)
                 to_check.extend(downstream_nodes)
+
+        print(f"Affected nodes : {affected_nodes}")
         return affected_nodes
 
     def update_parameters(self, new_parameters: InputParameters):
@@ -343,32 +347,22 @@ class CalculationEngine:
     def swap_strategy_for_node(self, node_name, strategy_instance, new_parameters):
         current_node = self.get_or_create_node(node_name)
         self.first_run = True
-        print(f"Engine : {type(strategy_instance)}")
-        print(f"Engine : {strategy_instance.get_dependencies()}")
-        print(f"Engine : {current_node}")
-        print(f"Engine : {current_node.get_strategy()}")
-        print(f"Engine : {current_node.get_strategy().get_dependencies()}")
-        print(f"Engine : {strategy_instance}")
-        print(f"Engine : {node_name}")
-
-        current_node.set_strategy(strategy_instance)
+        self.add_or_update_node(node_name, strategy_instance)
 
         self.current_output_data.set_result(node_name, None)  # Invalidate existing results
-        self.check_for_cycles()
-        self.build_inverse_dependencies()
 
         affected_nodes = self.get_nodes_affected_by_strategy_swap(node_name)
-        print(f"Engine : {affected_nodes}")
 
         for affected_node in affected_nodes:
             self.nodes[affected_node].mark_for_recalculation()
 
         self.old_parameters = self.current_parameters
-        self.current_parameters = new_parameters
+        self.current_parameters = InputParameters(new_parameters)
 
         if self.current_output_data.results:
             self.old_output_data = copy.deepcopy(self.current_output_data)
 
+        self.current_output_data = CalculationResults()
 
         self.run_calculations(affected_nodes)
 
