@@ -425,9 +425,16 @@ class MainGUI(QMainWindow):
         self.tabs = QTabWidget()
         self.param_tab = QWidget()  # QWidget that will contain the parameters layout as a tab
         self.strategy_tab = QWidget()  # QWidget that will contain the strategy selection layout as a tab
+        self.spice_tab = QWidget()  # QWidget that will contain the spice layout as a tab
+        self.optimisation_tab = QWidget()  # QWidget that will contain the optimisation layout as a tab
+        self.EMC_tab = QWidget()  # QWidget that will contain the EMC layout as a tab
 
         self.params_layout = QVBoxLayout(self.param_tab)
         self.strategy_layout = QVBoxLayout(self.strategy_tab)
+        self.spice_layout = QVBoxLayout(self.spice_tab)
+        self.optimisation_layout = QVBoxLayout(self.optimisation_tab)
+        self.EMC_layout = QVBoxLayout(self.EMC_tab)
+
 
         # Grid layout for parameter inputs
         self.grid_layout = QGridLayout() # Grid layout for global sliders
@@ -445,6 +452,9 @@ class MainGUI(QMainWindow):
 
         self.tabs.addTab(self.param_tab, "Parameters")
         self.tabs.addTab(self.strategy_tab, "Strategy Selection")
+        self.tabs.addTab(self.spice_tab, "Spice Simulation")
+        self.tabs.addTab(self.optimisation_tab, "Optimisation")
+        self.tabs.addTab(self.EMC_tab, "EMC")
 
         self.init_strategy_selection()
 
