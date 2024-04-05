@@ -11,6 +11,7 @@ dependencies:
   - sphinx=7.2.6
   - pip=24.0
   - pint=0.23
+  - pandas=2.2.1
   - pip:
       - pyqt6==6.6.1
       - pyqt6-qt6==6.6.2
