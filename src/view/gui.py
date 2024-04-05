@@ -381,6 +381,7 @@ class MainGUI(QMainWindow):
             checkbox.stateChanged.connect(self.update_plot)
 
             combo_box = QComboBox()
+            combo_box.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
             combo_box.currentIndexChanged.connect(self.update_plot)
             self.comboboxes.append(combo_box)
 
