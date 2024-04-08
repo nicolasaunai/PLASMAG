@@ -159,6 +159,8 @@ class MainGUI(QMainWindow):
         self.latest_results = None
         self.background_curve_data = None
         self.reset_background_buttons = None
+        self.button_states = {}
+        self.saved_parameters = []
 
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 2560, 1440)  # Adjust size as needed
@@ -324,8 +326,20 @@ class MainGUI(QMainWindow):
                         grand_child.widget().deleteLater()
 
     def clear_saved_results(self):
+        # reset all buttons colors
+        for buttons in self.all_buttons:
+            for button in buttons:
+                button.setStyleSheet("background-color: none")
         self.controller.clear_calculation_results()
+
+        for i in range(len(self.saved_parameters)):
+            self.saved_parameters[i] = None
+            self.button_states[i] = 0
+
         self.plot_results(self.latest_results)
+
+
+
     def init_canvas(self, number_of_plots=3, number_of_buttons=3):
         """
         Initializes the matplotlib canvas for plotting the calculation results.
@@ -346,6 +360,7 @@ class MainGUI(QMainWindow):
         buttons_labels = [str(i) for i in range(1, number_of_buttons + 1)]
         btn_list = []
 
+
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(0)  # Ensure no extra space between buttons
 
@@ -357,11 +372,10 @@ class MainGUI(QMainWindow):
             btn1 = QPushButton(label)
             btn1.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
             btn1.setMaximumHeight(40)
-            btn1.clicked.connect(lambda _, l=label: self.controller.save_current_results(int(l) - 1))
             btn_list.append(btn1)
 
         # Note: btnC added outside of loop, so it's not duplicated in logic
-        btnC = QPushButton("C")
+        btnC = QPushButton("Clear")
         btnC.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
         btnC.clicked.connect(lambda _: self.clear_saved_results())
         btnC.setMaximumHeight(40)
@@ -370,6 +384,11 @@ class MainGUI(QMainWindow):
         # Add the buttons to the layout
         for btn in btn_list:
             btn_layout.addWidget(btn)
+
+        for index, btn in enumerate(btn_list[:-1]):
+            btn.clicked.connect(lambda _, b=btn, i=index: self.save_results(i, b))
+            self.button_states[index] = 0
+            self.saved_parameters.append(None)
 
         # Add another spacer item at the end to maintain center alignment
         btn_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
@@ -861,14 +880,9 @@ class MainGUI(QMainWindow):
         line_edit.setText(f"{new_value:.3f}")  # Format with 3 decimal places
         self.calculation_timer.start()
 
-    def calculate(self):
-        """
-        Gathers the current parameter values from the input fields, initiates the calculation process through
-        the controller,
-        and triggers the plotting of the results. Uses unit conversion for parameters requiring it.
-        """
-        # Retrieve parameters from inputs and convert units where necessary
+    def retrieve_parameters(self):
         params_dict = {}
+
         for category, parameters in self.input_parameters.items():
             for param, attrs in parameters.items():
                 if param in ['f_start', 'f_stop']:
@@ -888,7 +902,18 @@ class MainGUI(QMainWindow):
                         params_dict[param] = value_converted
                     except ValueError:
                         print(f"Invalid input for parameter '{param}': '{text}'. Skipping calculation.")
-                        return
+                        return None
+
+        return params_dict
+    def calculate(self):
+        """
+        Gathers the current parameter values from the input fields, initiates the calculation process through
+        the controller,
+        and triggers the plotting of the results. Uses unit conversion for parameters requiring it.
+        """
+        # Retrieve parameters from inputs and convert units where necessary
+
+        params_dict = self.retrieve_parameters()
 
         if hasattr(self.controller, 'update_parameters'):
             self.controller.update_parameters(params_dict)
@@ -998,7 +1023,10 @@ class MainGUI(QMainWindow):
         """
         self.latest_results = calculation_results  # Store the latest results
 
-        available_results = list(self.latest_results.keys())
+        if self.latest_results is not None:
+            available_results = list(self.latest_results.keys())
+        else :
+            available_results = None
         if 'frequency_vector' in available_results:
             available_results.remove('frequency_vector')
 
@@ -1029,6 +1057,7 @@ class MainGUI(QMainWindow):
         to the default state.
         """
         # Iterate through categories and their parameters
+        self.load_default_parameters()
         for category, parameters in self.input_parameters.items():
             for parameter in parameters:
                 if parameter in self.inputs:
@@ -1143,6 +1172,36 @@ class MainGUI(QMainWindow):
 
         self.controller.set_node_strategy(node_name, strategy_class, params_dict)
         self.calculate()
+
+    def save_results(self, index, button):
+        if self.button_states[index] == 0:
+            button.setStyleSheet("background-color: green")
+            self.button_states[index] = 1
+
+            current_parameters = self.input_parameters.copy()
+            for section_name, parameters in current_parameters.items():
+                for param_name in parameters:
+                    if param_name in self.inputs:
+                        line_edit = self.inputs[param_name]
+                        current_value = line_edit.text()
+
+                        try:
+                            current_value_float = float(current_value)
+                            parameters[param_name]['default'] = current_value_float
+                        except ValueError:
+                            print(
+                                f"Warning: Skipping parameter '{param_name}' with non-numeric input '{current_value}'.")
+
+            self.controller.save_current_results(index)
+            self.saved_parameters[index] = current_parameters
+
+        else:
+            if self.saved_parameters[index] is not None:
+                for section_name, parameters in self.saved_parameters[index].items():
+                    for param_name, param_info in parameters.items():
+                        if param_name in self.inputs:
+                            self.inputs[param_name].setText(str(param_info['default']))
+                self.calculate()
 
 
 if __name__ == "__main__":
