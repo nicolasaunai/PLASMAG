@@ -94,8 +94,6 @@ class MplCanvas(FigureCanvas):
         self.draw()
 
 
-
-
 class MainGUI(QMainWindow):
     """
         The MainGUI class is responsible for creating and managing the graphical user interface of the
@@ -188,6 +186,8 @@ class MainGUI(QMainWindow):
                 label = QLabel(f"{param_name}:")
                 line_edit = QLineEdit(str(param_attrs['default']))
                 line_edit.setToolTip(param_attrs['description'])
+                line_edit.setPlaceholderText(f"Default: {param_attrs['default']}")
+                line_edit.returnPressed.connect(self.calculate)
                 self.inputs[param_name] = line_edit
 
                 line_edit.textChanged.connect(lambda _, le=line_edit, param=param_name: self.validate_input(le, param))
