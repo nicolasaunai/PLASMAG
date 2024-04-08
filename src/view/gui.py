@@ -12,10 +12,10 @@ from pint import UnitRegistry
 import numpy as np
 import pandas as pd
 
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QPoint
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea, QFileDialog, \
-    QMessageBox, QInputDialog, QTabWidget
+    QMessageBox, QInputDialog, QTabWidget, QToolTip
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QSplashScreen, QApplication
 
@@ -24,8 +24,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 from qtrangeslider import QRangeSlider
-from src.controler.controller import CalculationController
-
+from src.controler.controller import CalculationController, STRATEGY_MAP
 
 ureg: UnitRegistry = UnitRegistry()
 
@@ -44,6 +43,22 @@ def convert_unit(value, from_unit, to_unit):
         return (value * ureg(from_unit)).to(ureg(to_unit)).magnitude
     return value
 
+class ToolTipLineEdit(QLineEdit):
+    def __init__(self, default_value="", tooltip_text="", *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.defaultValue = default_value
+        self.tooltip_text = tooltip_text
+        self.setText(self.defaultValue)
+        self.textChanged.connect(self.showToolTip)
+        self.focusInEvent = self.showCustomToolTip
+        self.setPlaceholderText(f"Default: {default_value}")
+
+    def showCustomToolTip(self, event):
+        super().focusInEvent(event)
+        self.showToolTip()
+
+    def showToolTip(self):
+        QToolTip.showText(self.mapToGlobal(QPoint(0, 0)), self.tooltip_text, self)
 
 class CalculationThread(QThread):
     """
@@ -93,8 +108,6 @@ class MplCanvas(FigureCanvas):
         """
         self.axes.plot(x_data, y_data, label=label)
         self.draw()
-
-
 
 
 class MainGUI(QMainWindow):
@@ -187,8 +200,10 @@ class MainGUI(QMainWindow):
                     continue
 
                 label = QLabel(f"{param_name}:")
-                line_edit = QLineEdit(str(param_attrs['default']))
-                line_edit.setToolTip(param_attrs['description'])
+                default_value = str(param_attrs['default'])
+                tooltip_text = param_attrs['description']
+                line_edit = ToolTipLineEdit(default_value, tooltip_text)
+                line_edit.returnPressed.connect(self.calculate)
                 self.inputs[param_name] = line_edit
 
                 line_edit.textChanged.connect(lambda _, le=line_edit, param=param_name: self.validate_input(le, param))
@@ -382,6 +397,7 @@ class MainGUI(QMainWindow):
             checkbox.stateChanged.connect(self.update_plot)
 
             combo_box = QComboBox()
+            combo_box.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
             combo_box.currentIndexChanged.connect(self.update_plot)
             self.comboboxes.append(combo_box)
 
@@ -1067,7 +1083,66 @@ class MainGUI(QMainWindow):
             print(f"Invalid input for '{parameter}': '{text}' is not a valid number.")
 
     def init_strategy_selection(self):
-        pass
+        strategy_selection_widget = QWidget()
+        strategy_selection_layout = QGridLayout()
+        strategy_selection_widget.setLayout(strategy_selection_layout)
+
+        strategy_selection_layout.setSpacing(10)
+
+        row = 0
+        for node_name, strategies_info in STRATEGY_MAP.items():
+            if len(strategies_info["strategies"]) > 1:
+                label = QLabel(f"{node_name} strategy:")
+                label.setStyleSheet("font-weight: bold; font-size: 14px")
+
+                combo_box = QComboBox()
+                for strategy in strategies_info["strategies"]:
+                    combo_box.addItem(strategy.__name__, strategy)
+                default_strategy = strategies_info["default"]
+                combo_box.setCurrentIndex(combo_box.findText(default_strategy.__name__))
+
+                combo_box.currentIndexChanged.connect(
+                    lambda index, name=node_name, cb=combo_box: self.update_node_strategy(name, cb.currentData()))
+
+                strategy_selection_layout.addWidget(label, row, 0)
+                strategy_selection_layout.addWidget(combo_box, row, 1)
+                row += 1
+
+        strategy_selection_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding), row, 0)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(strategy_selection_widget)
+        self.strategy_tab.setLayout(QVBoxLayout())
+        self.strategy_tab.layout().addWidget(scroll_area)
+
+    def update_node_strategy(self, node_name, strategy_class):
+        print(f"Gui - try to update strategy for {node_name} to {strategy_class.__name__}")
+
+        params_dict = {}
+        for category, parameters in self.input_parameters.items():
+            for param, attrs in parameters.items():
+                if param in ['f_start', 'f_stop']:
+                    params_dict[param] = getattr(self, f"{param}_value")
+                    continue
+
+                if param in self.inputs:
+                    text = self.inputs[param].text()
+                    try:
+                        value = float(text)
+                        input_unit = attrs.get('input_unit', '')
+                        target_unit = attrs.get('target_unit', '')
+                        if input_unit and target_unit:
+                            value_converted = convert_unit(value, input_unit, target_unit)
+                        else:
+                            value_converted = value
+                        params_dict[param] = value_converted
+                    except ValueError:
+                        print(f"Invalid input for parameter '{param}': '{text}'. Skipping calculation.")
+                        return
+
+        self.controller.set_node_strategy(node_name, strategy_class, params_dict)
+        self.calculate()
 
 
 if __name__ == "__main__":
