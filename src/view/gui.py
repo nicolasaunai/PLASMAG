@@ -12,10 +12,10 @@ from pint import UnitRegistry
 import numpy as np
 import pandas as pd
 
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QPoint
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea, QFileDialog, \
-    QMessageBox, QInputDialog, QTabWidget
+    QMessageBox, QInputDialog, QTabWidget, QToolTip
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QSplashScreen, QApplication
 
@@ -43,6 +43,22 @@ def convert_unit(value, from_unit, to_unit):
         return (value * ureg(from_unit)).to(ureg(to_unit)).magnitude
     return value
 
+class ToolTipLineEdit(QLineEdit):
+    def __init__(self, default_value="", tooltip_text="", *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.defaultValue = default_value
+        self.tooltip_text = tooltip_text
+        self.setText(self.defaultValue)
+        self.textChanged.connect(self.showToolTip)
+        self.focusInEvent = self.showCustomToolTip
+        self.setPlaceholderText(f"Default: {default_value}")
+
+    def showCustomToolTip(self, event):
+        super().focusInEvent(event)
+        self.showToolTip()
+
+    def showToolTip(self):
+        QToolTip.showText(self.mapToGlobal(QPoint(0, 0)), self.tooltip_text, self)
 
 class CalculationThread(QThread):
     """
@@ -184,9 +200,9 @@ class MainGUI(QMainWindow):
                     continue
 
                 label = QLabel(f"{param_name}:")
-                line_edit = QLineEdit(str(param_attrs['default']))
-                line_edit.setToolTip(param_attrs['description'])
-                line_edit.setPlaceholderText(f"Default: {param_attrs['default']}")
+                default_value = str(param_attrs['default'])
+                tooltip_text = param_attrs['description']
+                line_edit = ToolTipLineEdit(default_value, tooltip_text)
                 line_edit.returnPressed.connect(self.calculate)
                 self.inputs[param_name] = line_edit
 
