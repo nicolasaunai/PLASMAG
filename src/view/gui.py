@@ -2,6 +2,7 @@
 src/view/gui.py
 PLASMAG GUI module
 """
+import copy
 import csv
 import json
 import os
@@ -272,22 +273,27 @@ class MainGUI(QMainWindow):
         # Add the grid layout to the main layout
         self.params_layout.addLayout(self.grid_layout)
 
-    def load_default_parameters(self):
+    def load_default_parameters(self, reload=True):
         """
         Loads the default input parameters from the 'data/default.json' file.
         :return:
         """
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        json_file_path = os.path.join(current_dir, '..', '..', 'data', 'default.json')
-        json_file_path = os.path.normpath(json_file_path)
+        if reload:
+            current_dir = os.path.dirname(os.path.realpath(__file__))
+            json_file_path = os.path.join(current_dir, '..', '..', 'data', 'default.json')
+            json_file_path = os.path.normpath(json_file_path)
 
-        try:
-            with open(json_file_path, 'r', encoding="utf-8") as json_file:
-                self.input_parameters = json.load(json_file)
-        except FileNotFoundError:
-            print(f"File{json_file_path} not found.")
-        except json.JSONDecodeError:
-            print(f"Error reading : {json_file_path}.")
+            print("Loading default parameters from: ", json_file_path)
+
+            try:
+                with open(json_file_path, 'r', encoding="utf-8") as json_file:
+                    self.input_parameters = json.load(json_file)
+            except FileNotFoundError:
+                print(f"File{json_file_path} not found.")
+            except json.JSONDecodeError:
+                print(f"Error reading : {json_file_path}.")
+        else:
+            self.input_parameters = self.input_parameters
 
     def init_timer(self, timer_value=50):
         """
@@ -476,7 +482,7 @@ class MainGUI(QMainWindow):
         self.init_parameters_input()
 
         self.reset_params_btn = QPushButton('Reset Parameters')
-        self.reset_params_btn.clicked.connect(self.reset_parameters)
+        self.reset_params_btn.clicked.connect(lambda _: self.reset_parameters(reload=True))
         self.params_layout.addWidget(self.reset_params_btn)
 
         self.calculate_btn = QPushButton('Calculate')
@@ -720,7 +726,7 @@ class MainGUI(QMainWindow):
                 # If a file is selected, load the parameters from that file
                 with open(fileName, 'r', encoding="utf-8") as json_file:
                     self.input_parameters = json.load(json_file)
-                    self.reset_parameters(reload_defaults=False)  # Update the UI with the imported parameters
+                    self.reset_parameters(reload=False)  # Update the UI with the imported parameters
                 print(f"Parameters imported from {fileName}")
         except Exception as e:
             self.display_error(f"Error importing parameters: {e}")
@@ -1050,15 +1056,15 @@ class MainGUI(QMainWindow):
                 # Trigger update_plot now with the restored or updated selection
                 self.update_plot(i)
 
-    def reset_parameters(self, reload_defaults=True):
+    def reset_parameters(self, reload=True):
         """
         Resets all input fields to their default values and adjusts the sliders to reflect these defaults.
         This method iterates through all parameters across categories, reverting any changes made by the user
         to the default state.
         """
         # Iterate through categories and their parameters
-        if reload_defaults:
-            self.load_default_parameters()
+        print(f"reset params {reload}")
+        self.load_default_parameters(reload=reload)
         for category, parameters in self.input_parameters.items():
             for parameter in parameters:
                 if parameter in self.inputs:
@@ -1192,16 +1198,24 @@ class MainGUI(QMainWindow):
                         except ValueError:
                             print(
                                 f"Warning: Skipping parameter '{param_name}' with non-numeric input '{current_value}'.")
-
             self.controller.save_current_results(index)
-            self.saved_parameters[index] = current_parameters
+            self.saved_parameters[index] = copy.deepcopy(current_parameters)
 
         else:
             if self.saved_parameters[index] is not None:
-                for section_name, parameters in self.saved_parameters[index].items():
-                    for param_name, param_info in parameters.items():
-                        if param_name in self.inputs:
-                            self.inputs[param_name].setText(str(param_info['default']))
+                for category, parameters in self.input_parameters.items():
+                    for parameter in parameters:
+
+                        if parameter == 'f_start' or parameter == 'f_stop':
+                            continue
+                        if parameter in self.saved_parameters[index][category].keys():
+                            default_value = str(self.saved_parameters[index][category][parameter]['default'])
+                            self.inputs[parameter].setText(default_value)
+
+                            # If the currently selected input is being reset, update the sliders too
+                            if self.currently_selected_input and self.currently_selected_input[1] == parameter:
+                                self.bind_slider_to_input(self.inputs[parameter], parameter)
+                print(f"Params reset to saved state {index}")
                 self.calculate()
 
 
