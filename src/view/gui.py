@@ -720,7 +720,7 @@ class MainGUI(QMainWindow):
                 # If a file is selected, load the parameters from that file
                 with open(fileName, 'r', encoding="utf-8") as json_file:
                     self.input_parameters = json.load(json_file)
-                    self.reset_parameters()  # Update the UI with the imported parameters
+                    self.reset_parameters(reload_defaults=False)  # Update the UI with the imported parameters
                 print(f"Parameters imported from {fileName}")
         except Exception as e:
             self.display_error(f"Error importing parameters: {e}")
@@ -1050,14 +1050,15 @@ class MainGUI(QMainWindow):
                 # Trigger update_plot now with the restored or updated selection
                 self.update_plot(i)
 
-    def reset_parameters(self):
+    def reset_parameters(self, reload_defaults=True):
         """
         Resets all input fields to their default values and adjusts the sliders to reflect these defaults.
         This method iterates through all parameters across categories, reverting any changes made by the user
         to the default state.
         """
         # Iterate through categories and their parameters
-        self.load_default_parameters()
+        if reload_defaults:
+            self.load_default_parameters()
         for category, parameters in self.input_parameters.items():
             for parameter in parameters:
                 if parameter in self.inputs:
