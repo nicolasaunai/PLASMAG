@@ -23,7 +23,6 @@ from src.model.strategies.strategy_lib.mu_app import AnalyticalMu_appStrategy
 from src.model.strategies.strategy_lib.resistance import AnalyticalResistanceStrategy, AnalyticalResistanceStrategyv2
 
 STRATEGY_MAP = {
-
     "resistance": {
         "default": AnalyticalResistanceStrategy,
         "strategies": [AnalyticalResistanceStrategy, AnalyticalResistanceStrategyv2]

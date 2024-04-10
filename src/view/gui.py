@@ -1198,22 +1198,18 @@ class MainGUI(QMainWindow):
                         except ValueError:
                             print(
                                 f"Warning: Skipping parameter '{param_name}' with non-numeric input '{current_value}'.")
-            print(f"Saving current results to state {index}")
             self.controller.save_current_results(index)
             self.saved_parameters[index] = copy.deepcopy(current_parameters)
-            print(self.saved_parameters[index])
 
         else:
-            print(f"Resetting saved results to state {index}")
             if self.saved_parameters[index] is not None:
-                print(self.saved_parameters[index])
                 for category, parameters in self.input_parameters.items():
                     for parameter in parameters:
-                        print(f"Resetting {parameter}")
-                        print(self.saved_parameters[index][category].keys())
+
+                        if parameter == 'f_start' or parameter == 'f_stop':
+                            continue
                         if parameter in self.saved_parameters[index][category].keys():
-                            default_value = str(self.saved_parameters[index][category]['default'])
-                            print(f"Resetting {parameter} to {default_value}")
+                            default_value = str(self.saved_parameters[index][category][parameter]['default'])
                             self.inputs[parameter].setText(default_value)
 
                             # If the currently selected input is being reset, update the sliders too

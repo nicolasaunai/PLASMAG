@@ -33,7 +33,7 @@ class AnalyticalResistanceStrategyv2(CalculationStrategy):
 
     @staticmethod
     def get_dependencies():
-        return ['nb_spire', 'ray_spire', 'rho_whire']
+        return ['nb_spire', 'ray_spire', 'rho_whire', "resistance"]
 
 
 
