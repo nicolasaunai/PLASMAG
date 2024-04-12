@@ -21,6 +21,7 @@ from src.model.strategies.strategy_lib.inductance import AnalyticalInductanceStr
 from src.model.strategies.strategy_lib.lambda_strategy import AnalyticalLambdaStrategy
 from src.model.strategies.strategy_lib.mu_app import AnalyticalMu_appStrategy
 from src.model.strategies.strategy_lib.resistance import AnalyticalResistanceStrategy, AnalyticalResistanceStrategyv2
+from src.model.strategies.strategy_lib.SPICE import SPICE_test
 
 STRATEGY_MAP = {
     "resistance": {
@@ -148,6 +149,10 @@ STRATEGY_MAP = {
     "NEMI_FIltered": {
         "default": NEMI_FIltered,
         "strategies": [NEMI_FIltered,NEMI_FIlteredv2, NEMI_FIlteredv3]
+    },
+    "SPICE_test": {
+        "default": SPICE_test,
+        "strategies": [SPICE_test]
     }
 }
 class CalculationController:

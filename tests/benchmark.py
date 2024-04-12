@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 from model.strategies.strategy_lib.CLTF import CLTF_Strategy_Non_Filtered, CLTF_Strategy_Filtered, \
     CLTF_Strategy_Non_Filtered_legacy
 from model.strategies.strategy_lib.OLTF import OLTF_Strategy_Non_Filtered, OLTF_Strategy_Filtered
+from model.strategies.strategy_lib.SPICE import SPICE_test
 from model.strategies.strategy_lib.TF_ASIC import TF_ASIC_Stage_1_Strategy_linear, TF_ASIC_Stage_2_Strategy_linear, \
     TF_ASIC_Strategy_linear
 from src.model.input_parameters import InputParameters
@@ -63,18 +64,12 @@ calculation_engine.add_or_update_node('inductance', AnalyticalInductanceStrategy
 calculation_engine.add_or_update_node('capacitance', AnalyticalCapacitanceStrategy())
 calculation_engine.add_or_update_node('impedance', AnalyticalImpedanceStrategy())
 
-calculation_engine.add_or_update_node('TF_ASIC_Stage_1_linear', TF_ASIC_Stage_1_Strategy_linear())
-calculation_engine.add_or_update_node('TF_ASIC_Stage_2_linear', TF_ASIC_Stage_2_Strategy_linear())
+calculation_engine.add_or_update_node('TF_ASIC_Stage_1', TF_ASIC_Stage_1_Strategy_linear())
+calculation_engine.add_or_update_node('TF_ASIC_Stage_2', TF_ASIC_Stage_2_Strategy_linear())
 
 calculation_engine.add_or_update_node('TF_ASIC_linear', TF_ASIC_Strategy_linear())
 
-calculation_engine.add_or_update_node('OLTF_Non_filtered', OLTF_Strategy_Non_Filtered())
-calculation_engine.add_or_update_node('OLTF_Filtered', OLTF_Strategy_Filtered())
 
-calculation_engine.add_or_update_node('CLTF_Non_filtered', CLTF_Strategy_Non_Filtered())
-calculation_engine.add_or_update_node('CLTF_Filtered', CLTF_Strategy_Filtered())
-
-calculation_engine.add_or_update_node('CLTF_Non_Filtered_legacy', CLTF_Strategy_Non_Filtered_legacy())
 
 def run_impedance_calculation(f_start, f_stop, nb_points_per_decade):
     """
@@ -114,6 +109,8 @@ def run_impedance_calculation(f_start, f_stop, nb_points_per_decade):
         'gain_2_linear': 1,
         'mutual_inductance': 0.1,
         'feedback_resistance': 1000,
+        'temperature': 300,
+        "spice_resistance_test": 1000
     }
     parameters = InputParameters(parameters_dict)
     calculation_engine.update_parameters(parameters)
@@ -138,24 +135,21 @@ for f_range in frequencies_ranges:
         time_taken = timer.timeit(number=number_of_runs) / number_of_runs
         benchmark_results.append({'f_range': f_range, 'points': points, 'time_taken': time_taken})
 
+benchmark_results_with_spice = []
+calculation_engine.add_or_update_node('spice_node', SPICE_test())
+
+for f_range in frequencies_ranges:
+    for points in points_per_decade:
+        timer = timeit.Timer(lambda: run_impedance_calculation(f_range[0], f_range[1], points))
+        time_taken = timer.timeit(number=number_of_runs) / number_of_runs
+        benchmark_results_with_spice.append({'f_range': f_range, 'points': points, 'time_taken': time_taken})
+
 # Plotting the benchmark results
 plt.figure(figsize=(10, 6))
 
-for f_range in frequencies_ranges:
-    times_for_range = [result['time_taken'] for result in benchmark_results if result['f_range'] == f_range]
-    points_for_range = [result['points'] for result in benchmark_results if result['f_range'] == f_range]
-    plt.plot(points_for_range, times_for_range, label=f"Frequency range {f_range[0]}-{f_range[1]} Hz", marker='o')
+df = pd.DataFrame(benchmark_results)
+df_with_spice = pd.DataFrame(benchmark_results_with_spice)
 
-plt.xlabel('Points per decade')
-plt.xscale('log')
-plt.yscale('log')
-plt.ylabel('Average calculation time (seconds)')
-plt.title('Calculation Time vs Points per Decade for Different Frequency Ranges')
-plt.legend()
-plt.grid(True)
-plt.show()
-
-df_benchmark_results = pd.DataFrame(benchmark_results)
-
-csv_file_path = 'benchmark_results_update.csv'  # Vous pouvez modifier ce chemin selon vos besoins
-df_benchmark_results.to_csv(csv_file_path, index=False)
+# save both dataframes to csv
+df.to_csv('benchmark_results.csv')
+df_with_spice.to_csv('benchmark_results_with_spice.csv')

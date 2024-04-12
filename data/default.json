@@ -247,6 +247,14 @@
             "description": "e_in",
             "input_unit": "",
             "target_unit": ""
+        },
+        "spice_resistance_test" : {
+            "default": 1,
+            "min": 1,
+            "max": 10000,
+            "description": "Spice resistance test",
+            "input_unit": "",
+            "target_unit": ""
         }
     }
 }
