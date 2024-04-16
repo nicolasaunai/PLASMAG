@@ -48,6 +48,12 @@ parameters_dict = {
         'gain_2_linear': 1,
         'mutual_inductance': 0.1,
         'feedback_resistance': 1000,
+        'temperature': 300,
+        "spice_resistance_test": 1000,
+        "Para_A": 1,
+        "Para_B": 1,
+        "e_en": 1,
+        "e_in": 1,
     }
 parameters = InputParameters(parameters_dict)
 
@@ -84,9 +90,9 @@ def run_impedance_calculation(f_start, f_stop, nb_points_per_decade):
         None. The results are stored within the calculation engine's current output data.
     """
     parameters_dict = {
-        'f_start': f_start,
-        'f_stop': f_stop,
-        'nb_points_per_decade': nb_points_per_decade,
+        'f_start': 1,
+        'f_stop': 1000000,
+        'nb_points_per_decade': 100,
         # Add other parameters required by the strategies
         'mu_insulator': 1,
         'len_coil': 155 * 10 ** -3,

@@ -16,7 +16,7 @@ import pandas as pd
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QPoint
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea, QFileDialog, \
-    QMessageBox, QInputDialog, QTabWidget, QToolTip
+    QMessageBox, QInputDialog, QTabWidget, QToolTip, QGroupBox, QSplitter
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QSplashScreen, QApplication
 
@@ -448,6 +448,75 @@ class MainGUI(QMainWindow):
 
             self.plot_layout.addLayout(canvas_layout)
 
+    def create_spice_settings(self):
+        # Crée le groupe pour les réglages Spice
+        spice_group_box = QGroupBox()
+        spice_layout = QVBoxLayout()
+
+        # Bouton pour toggle la visibilité
+        self.toggle_spice_button = QPushButton("+")
+        self.toggle_spice_button.setFixedWidth(30)
+        self.toggle_spice_button.clicked.connect(self.toggle_spice_visibility)
+        spice_layout.addWidget(self.toggle_spice_button)
+
+        # Contenu du panneau Spice
+        self.spice_contents = QWidget()
+        layout = QVBoxLayout(self.spice_contents)
+        layout.addWidget(QLineEdit("Paramètre 1"))
+        layout.addWidget(QLineEdit("Paramètre 2"))
+        self.spice_contents.setVisible(False)
+
+        spice_layout.addWidget(self.spice_contents)
+        spice_group_box.setLayout(spice_layout)
+
+        return spice_group_box
+
+    def toggle_spice_visibility(self):
+        # Montre ou cache les réglages Spice
+        show = self.spice_contents.isHidden()
+        self.spice_contents.setVisible(show)
+        self.toggle_spice_button.setText("-" if show else "+")
+        self.adjust_spice_splitter(show)
+
+    def adjust_spice_splitter(self, show):
+        sizes = self.main_splitter.sizes()
+        if show:
+            sizes[1] = self.width() * 0.2
+        else:
+            sizes[1] = 50
+
+        self.main_splitter.setSizes(sizes)
+    def init_spice_settings(self):
+        self.spice_group_box = QGroupBox("Spice Settings")
+        self.spice_layout = QVBoxLayout()
+
+        self.toggle_spice_button = QPushButton("Show/Hide Spice Settings")
+        self.toggle_spice_button.clicked.connect(self.toggle_spice_settings)
+        self.spice_layout.addWidget(self.toggle_spice_button)
+
+        self.spice_param1 = QLineEdit("Test Field Value")
+        self.spice_layout.addWidget(self.spice_param1)
+
+        self.spice_group_box.setLayout(self.spice_layout)
+        self.spice_group_box.setCheckable(True)
+        self.spice_group_box.setChecked(False)
+
+
+
+    def adjust_splitter_for_spice_hidden(self):
+        # Réduire l'espace alloué au volet Spice dans le splitter
+        sizes = self.main_splitter.sizes()
+        total = sum(sizes)
+        new_sizes = [total - 30, 30, sizes[2]]  # Réservez un minimum pour le bouton
+        self.main_splitter.setSizes(new_sizes)
+
+    def adjust_splitter_for_spice_visible(self):
+        # Augmenter l'espace alloué au volet Spice dans le splitter
+        sizes = self.main_splitter.sizes()
+        total = sum(sizes)
+        new_sizes = [total * 0.7, total * 0.3, sizes[2]]  # Partage flexible selon votre préférence
+        self.main_splitter.setSizes(new_sizes)
+
     def init_ui(self):
         """
         Initializes the graphical user interface by setting up the main layout, input fields,
@@ -480,6 +549,9 @@ class MainGUI(QMainWindow):
         # Grid layout for parameter inputs
         self.grid_layout = QGridLayout() # Grid layout for global sliders
         self.init_parameters_input()
+        self.init_strategy_selection()
+        self.init_sliders()
+
 
         self.reset_params_btn = QPushButton('Reset Parameters')
         self.reset_params_btn.clicked.connect(lambda _: self.reset_parameters(reload=True))
@@ -489,7 +561,6 @@ class MainGUI(QMainWindow):
         self.calculate_btn.clicked.connect(self.calculate)
         self.params_layout.addWidget(self.calculate_btn)
 
-        self.init_sliders()
 
         self.tabs.addTab(self.param_tab, "Parameters")
         self.tabs.addTab(self.strategy_tab, "Strategy Selection")
@@ -497,7 +568,11 @@ class MainGUI(QMainWindow):
         self.tabs.addTab(self.optimisation_tab, "Optimisation")
         self.tabs.addTab(self.EMC_tab, "EMC")
 
-        self.init_strategy_selection()
+        self.spice_group_box = self.create_spice_settings()
+
+
+
+
 
         self.plot_layout = QVBoxLayout()
 
@@ -506,6 +581,13 @@ class MainGUI(QMainWindow):
             self.init_canvas(self.config_dict["number_of_plots"])
         else:
             self.init_canvas()
+
+        self.plot_widget = QWidget()
+        self.plot_widget.setLayout(self.plot_layout)
+
+        # set stretch factors for the splitter
+
+
 
         param_proportion = 2  # Default proportion for parameter layout
         plot_proportion = 4  # Default proportion for plot layout
@@ -517,9 +599,26 @@ class MainGUI(QMainWindow):
         except KeyError:
             print("Error while setting proportions")
 
+
+
         # Add the tabs widget and the plot layout to the main layout with specified proportions
-        self.main_layout.addWidget(self.tabs, param_proportion)
-        self.main_layout.addLayout(self.plot_layout, plot_proportion)
+        #self.main_layout.addWidget(self.tabs, param_proportion)
+        #self.main_layout.addWidget(self.spice_group_box, 1)
+        #self.main_layout.addLayout(self.plot_layout, plot_proportion)
+
+        self.main_splitter = QSplitter(Qt.Horizontal)
+        self.main_layout.addWidget(self.main_splitter)
+
+
+        self.main_splitter.addWidget(self.tabs)
+        self.main_splitter.addWidget(self.spice_group_box)
+        self.main_splitter.addWidget(self.plot_widget)
+
+        self.main_splitter.setStretchFactor(0, 3)
+        self.main_splitter.setStretchFactor(1, 1)
+
+        self.main_splitter.setStretchFactor(2, 4)
+
 
         # Initialize controllers, assuming there are as many save buttons as there are canvases
         self.init_controller(backups_count=3)
