@@ -370,17 +370,14 @@ class MainGUI(QMainWindow):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(0)  # Ensure no extra space between buttons
 
-        # Add a spacer item at the beginning to push buttons to center
         btn_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
         for label in buttons_labels:
-            # Create the buttons
             btn1 = QPushButton(label)
             btn1.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
             btn1.setMaximumHeight(40)
             btn_list.append(btn1)
 
-        # Note: btnC added outside of loop, so it's not duplicated in logic
         btnC = QPushButton("Clear")
         btnC.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
         btnC.clicked.connect(lambda _: self.clear_saved_results())
@@ -396,10 +393,9 @@ class MainGUI(QMainWindow):
             self.button_states[index] = 0
             self.saved_parameters.append(None)
 
-        # Add another spacer item at the end to maintain center alignment
         btn_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
-        btn_layout.setContentsMargins(0, 0, 0, 0)  # Reduce margins to utilize available space efficiently
+        btn_layout.setContentsMargins(0, 0, 0, 0)
 
         self.plot_layout.addLayout(btn_layout)
         self.all_buttons.append(btn_list)
@@ -449,17 +445,14 @@ class MainGUI(QMainWindow):
             self.plot_layout.addLayout(canvas_layout)
 
     def create_spice_settings(self):
-        # Crée le groupe pour les réglages Spice
         spice_group_box = QGroupBox()
         spice_layout = QVBoxLayout()
 
-        # Bouton pour toggle la visibilité
         self.toggle_spice_button = QPushButton("+")
         self.toggle_spice_button.setFixedWidth(30)
         self.toggle_spice_button.clicked.connect(self.toggle_spice_visibility)
         spice_layout.addWidget(self.toggle_spice_button)
 
-        # Contenu du panneau Spice
         self.spice_contents = QWidget()
         layout = QVBoxLayout(self.spice_contents)
         layout.addWidget(QLineEdit("Paramètre 1"))
@@ -472,7 +465,6 @@ class MainGUI(QMainWindow):
         return spice_group_box
 
     def toggle_spice_visibility(self):
-        # Montre ou cache les réglages Spice
         show = self.spice_contents.isHidden()
         self.spice_contents.setVisible(show)
         self.toggle_spice_button.setText("-" if show else "+")
@@ -486,20 +478,7 @@ class MainGUI(QMainWindow):
             sizes[1] = 50
 
         self.main_splitter.setSizes(sizes)
-    def init_spice_settings(self):
-        self.spice_group_box = QGroupBox("Spice Settings")
-        self.spice_layout = QVBoxLayout()
 
-        self.toggle_spice_button = QPushButton("Show/Hide Spice Settings")
-        self.toggle_spice_button.clicked.connect(self.toggle_spice_settings)
-        self.spice_layout.addWidget(self.toggle_spice_button)
-
-        self.spice_param1 = QLineEdit("Test Field Value")
-        self.spice_layout.addWidget(self.spice_param1)
-
-        self.spice_group_box.setLayout(self.spice_layout)
-        self.spice_group_box.setCheckable(True)
-        self.spice_group_box.setChecked(False)
 
 
 

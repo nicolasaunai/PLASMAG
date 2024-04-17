@@ -21,7 +21,7 @@ from src.model.strategies.strategy_lib.inductance import AnalyticalInductanceStr
 from src.model.strategies.strategy_lib.lambda_strategy import AnalyticalLambdaStrategy
 from src.model.strategies.strategy_lib.mu_app import AnalyticalMu_appStrategy
 from src.model.strategies.strategy_lib.resistance import AnalyticalResistanceStrategy, AnalyticalResistanceStrategyv2
-from src.model.strategies.strategy_lib.SPICE import SPICE_test
+from src.model.strategies.strategy_lib.SPICE import SPICE_test, SPICE_test2
 
 STRATEGY_MAP = {
     "resistance": {
@@ -153,6 +153,10 @@ STRATEGY_MAP = {
     "SPICE_test": {
         "default": SPICE_test,
         "strategies": [SPICE_test]
+    },
+    "SPICE_test2" : {
+        "default": SPICE_test2,
+        "strategies": [SPICE_test2]
     }
 }
 class CalculationController:
