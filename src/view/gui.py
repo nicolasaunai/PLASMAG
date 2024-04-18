@@ -13,10 +13,10 @@ from pint import UnitRegistry
 import numpy as np
 import pandas as pd
 
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QPoint
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QPoint, QEvent
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea, QFileDialog, \
-    QMessageBox, QInputDialog, QTabWidget, QToolTip, QGroupBox, QSplitter
+    QMessageBox, QInputDialog, QTabWidget, QToolTip, QGroupBox, QSplitter, QDialog
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QSplashScreen, QApplication
 
@@ -30,6 +30,70 @@ from src.controler.controller import CalculationController, STRATEGY_MAP
 ureg: UnitRegistry = UnitRegistry()
 
 
+class ResizableImageLabel(QLabel):
+    clicked = pyqtSignal()
+
+    def __init__(self, pixmap, parent=None):
+        super().__init__(parent)
+        self.original_pixmap = pixmap
+        self.setScaledContents(False)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.original_pixmap:
+            size = self.size()
+            scaled_size = self.original_pixmap.size()
+            scaled_size.scale(size, Qt.AspectRatioMode.KeepAspectRatio)
+            if not self.pixmap() or self.pixmap().size() != scaled_size:
+                self.setPixmap(self.original_pixmap.scaled(scaled_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+
+
+class EnlargedImageDialog(QDialog):
+    def __init__(self, pixmap, parent=None):
+        super().__init__(parent, Qt.WindowType.FramelessWindowHint)
+        self.setWindowTitle("Enlarged ASIC Image")
+
+        self.setModal(True)
+
+        screen_size = QApplication.primaryScreen().size()
+        max_width = screen_size.width() * 0.5
+        max_height = screen_size.height() * 0.5
+
+        scaled_pixmap = pixmap.scaled(max_width, max_height, Qt.AspectRatioMode.KeepAspectRatio,
+                                      Qt.TransformationMode.SmoothTransformation)
+
+        layout = QVBoxLayout()
+        self.closeButton = QPushButton("×")
+        self.closeButton.setFixedSize(30, 30)
+        self.closeButton.setStyleSheet(
+            "QPushButton { font-size: 50px; border: none; color: black; } QPushButton:hover { color: red; }")
+        self.closeButton.clicked.connect(self.close)
+        layout.addWidget(self.closeButton, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+
+        image_label = QLabel()
+        image_label.setPixmap(scaled_pixmap)
+        layout.addWidget(image_label)
+        self.setLayout(layout)
+        self.resize(
+            scaled_pixmap.size())
+
+
+        QApplication.instance().installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.MouseButtonPress:
+            self.accept()
+            QApplication.instance().removeEventFilter(self)
+            return True
+        return super().eventFilter(obj, event)
+
+    def closeEvent(self, event):
+        # Ensure the event filter is removed when dialog closes
+        QApplication.instance().removeEventFilter(self)
+        super().closeEvent(event)
 def convert_unit(value, from_unit, to_unit):
     """
     Converts the given value from one unit to another using Pint.
@@ -43,6 +107,15 @@ def convert_unit(value, from_unit, to_unit):
     if from_unit and to_unit:
         return (value * ureg(from_unit)).to(ureg(to_unit)).magnitude
     return value
+class ClickableLabel(QLabel):
+    clicked = pyqtSignal()
+
+    def __init__(self, *args, **kwargs):
+        super(ClickableLabel, self).__init__(*args, **kwargs)
+
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+
 
 class ToolTipLineEdit(QLineEdit):
     def __init__(self, default_value="", tooltip_text="", *args, **kwargs):
@@ -178,6 +251,7 @@ class MainGUI(QMainWindow):
 
         self.showMaximized()
 
+
     def init_parameters_input(self):
         """
         Initializes the input fields for the parameters based on the loaded input parameters.
@@ -187,6 +261,8 @@ class MainGUI(QMainWindow):
         self.inputs = {}
 
         for section_name, section_parameters in self.input_parameters.items():
+            if section_name == 'SPICE':
+                continue
             section_widget = QWidget()
             section_layout = QGridLayout()
             section_widget.setLayout(section_layout)
@@ -444,7 +520,12 @@ class MainGUI(QMainWindow):
 
             self.plot_layout.addLayout(canvas_layout)
 
-    def create_spice_settings(self):
+    def show_enlarged_image(self, pixmap):
+        dialog = EnlargedImageDialog(pixmap, self)
+        QApplication.instance().installEventFilter(dialog)
+        dialog.exec()
+        QApplication.instance().removeEventFilter(dialog)
+    def init_spice_settings(self):
         spice_group_box = QGroupBox()
         spice_layout = QVBoxLayout()
 
@@ -454,15 +535,40 @@ class MainGUI(QMainWindow):
         spice_layout.addWidget(self.toggle_spice_button)
 
         self.spice_contents = QWidget()
-        layout = QVBoxLayout(self.spice_contents)
-        layout.addWidget(QLineEdit("Paramètre 1"))
-        layout.addWidget(QLineEdit("Paramètre 2"))
-        self.spice_contents.setVisible(False)
+        spice_contents_layout = QVBoxLayout(self.spice_contents)  # Main layout for SPICE contents
 
+        # Create a sub-layout for parameters only
+        params_layout = QGridLayout()
+        spice_contents_layout.addLayout(params_layout)  # Add the grid layout to the main vertical layout
+
+        row = 0  # Initialize row counter
+        if 'SPICE' in self.input_parameters:
+            spice_params = self.input_parameters['SPICE']
+            for param_name, param_info in spice_params.items():
+                label = QLabel(f"{param_name}:")
+                default_value = str(param_info['default'])
+                tooltip_text = param_info.get('description', '')
+                line_edit = ToolTipLineEdit(default_value, tooltip_text)
+                line_edit.returnPressed.connect(self.calculate)
+                self.inputs[param_name] = line_edit
+
+                line_edit.textChanged.connect(lambda _, le=line_edit, param=param_name: self.validate_input(le, param))
+
+
+                params_layout.addWidget(label, row, 0)  # Add label to the grid
+                params_layout.addWidget(line_edit, row, 1)  # Add line edit next to label
+                row += 1
+
+        circuit_image_label = ResizableImageLabel(QPixmap("ressources/ASIC_image_1.png"))
+        circuit_image_label.clicked.connect(lambda: self.show_enlarged_image(QPixmap("ressources/ASIC_image_1.png")))
+        spice_contents_layout.addWidget(circuit_image_label)
+
+        self.spice_contents.setHidden(True)
         spice_layout.addWidget(self.spice_contents)
         spice_group_box.setLayout(spice_layout)
 
         return spice_group_box
+
 
     def toggle_spice_visibility(self):
         show = self.spice_contents.isHidden()
@@ -530,7 +636,7 @@ class MainGUI(QMainWindow):
         self.init_parameters_input()
         self.init_strategy_selection()
         self.init_sliders()
-
+        self.spice_group_box = self.init_spice_settings()
 
         self.reset_params_btn = QPushButton('Reset Parameters')
         self.reset_params_btn.clicked.connect(lambda _: self.reset_parameters(reload=True))
@@ -540,18 +646,11 @@ class MainGUI(QMainWindow):
         self.calculate_btn.clicked.connect(self.calculate)
         self.params_layout.addWidget(self.calculate_btn)
 
-
         self.tabs.addTab(self.param_tab, "Parameters")
         self.tabs.addTab(self.strategy_tab, "Strategy Selection")
         self.tabs.addTab(self.spice_tab, "Spice Simulation")
         self.tabs.addTab(self.optimisation_tab, "Optimisation")
         self.tabs.addTab(self.EMC_tab, "EMC")
-
-        self.spice_group_box = self.create_spice_settings()
-
-
-
-
 
         self.plot_layout = QVBoxLayout()
 
@@ -997,6 +1096,8 @@ class MainGUI(QMainWindow):
         """
         # Retrieve parameters from inputs and convert units where necessary
 
+        if self.block_calculation :
+            return
         params_dict = self.retrieve_parameters()
 
         if hasattr(self.controller, 'update_parameters'):
@@ -1191,9 +1292,11 @@ class MainGUI(QMainWindow):
 
             # Reset background color if the input is within the valid range
             line_edit.setStyleSheet("")
+            self.block_calculation = False
         except ValueError:
             # Indicate invalid input with a red background
             line_edit.setStyleSheet("background-color: #ffaaaa;")
+            self.block_calculation = True
             print(f"Invalid input for '{parameter}': '{text}' is not a valid number.")
 
     def init_strategy_selection(self):
