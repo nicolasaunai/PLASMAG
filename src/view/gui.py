@@ -235,6 +235,7 @@ class MainGUI(QMainWindow):
         self.reset_background_buttons = None
         self.button_states = {}
         self.saved_parameters = []
+        self.block_calculation = False
 
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 2560, 1440)  # Adjust size as needed
@@ -677,16 +678,8 @@ class MainGUI(QMainWindow):
         except KeyError:
             print("Error while setting proportions")
 
-
-
-        # Add the tabs widget and the plot layout to the main layout with specified proportions
-        #self.main_layout.addWidget(self.tabs, param_proportion)
-        #self.main_layout.addWidget(self.spice_group_box, 1)
-        #self.main_layout.addLayout(self.plot_layout, plot_proportion)
-
         self.main_splitter = QSplitter(Qt.Horizontal)
         self.main_layout.addWidget(self.main_splitter)
-
 
         self.main_splitter.addWidget(self.tabs)
         self.main_splitter.addWidget(self.spice_group_box)
@@ -1128,31 +1121,27 @@ class MainGUI(QMainWindow):
         QMessageBox.critical(self, "An error occurred", f"Calculation failed: {error_message}")
 
     def update_plot(self, index):
-        def plot_curve(data_with_meta, linestyle='-', color=None):
-            """Plot a curve with metadata."""
+        def plot_curve(data_with_meta, x_vector, linestyle='-', color=None):
+            """Plot a curve with metadata based on either frequency or time."""
             data = data_with_meta["data"]
             labels = data_with_meta.get("labels", ["", ""])
             units = data_with_meta.get("units", ["", ""])
 
-            # Determine if the data is scalar, vector, or ndim
             if np.isscalar(data):
-                y_values = np.full_like(frequency_vector, data)
-                canvas.axes.plot(frequency_vector, y_values, label=f"{labels[0]} ({units[0]})", linestyle=linestyle,
+                y_values = np.full_like(x_vector, data)
+                canvas.axes.plot(x_vector, y_values, label=f"{labels[0]} ({units[0]})", linestyle=linestyle,
                                  color=color)
             elif isinstance(data, np.ndarray) and data.ndim == 1:
-                canvas.axes.plot(frequency_vector, data, label=f"{labels[0]} ({units[0]})", linestyle=linestyle,
-                                 color=color)
+                if len(data) == len(x_vector):  # Ensure matching lengths
+                    canvas.axes.plot(x_vector, data, label=f"{labels[0]} ({units[0]})", linestyle=linestyle,
+                                     color=color)
             elif isinstance(data, np.ndarray) and data.ndim > 1:
-                # Assuming the first column is x-axis and subsequent columns are y-axis values
                 for col_index in range(1, data.shape[1]):
                     y_values = data[:, col_index]
-                    # Applying filtering based on frequency range, if applicable
-                    mask = (data[:, 0] >= self.f_start_value) & (data[:, 0] <= self.f_stop_value)
-                    x_filtered = data[mask, 0]
-                    y_filtered = y_values[mask]
-                    curve_label = labels[col_index] if len(labels) > col_index else f"Curve {col_index}"
-                    canvas.axes.plot(x_filtered, y_filtered, label=f"{curve_label} ({units[col_index]})",
-                                     linestyle=linestyle, color=color)
+                    if len(y_values) == len(x_vector):  # Ensure matching lengths
+                        canvas.axes.plot(x_vector, y_values, label=f"{labels[col_index]} ({units[col_index]})",
+                                         linestyle=linestyle, color=color)
+
         for i, (canvas, combo_box, checkbox) in enumerate(zip(self.canvases, self.comboboxes, self.checkboxes)):
             selected_key = combo_box.currentText()
             if not selected_key:
@@ -1162,43 +1151,52 @@ class MainGUI(QMainWindow):
 
             current_results = self.controller.get_current_results()
             old_results = self.controller.get_old_results()
-            frequency_vector = current_results.get('frequency_vector', [])["data"]
+
+            # Determine if data is temporal or frequency based and prepare x_vector accordingly
+            data_meta = current_results.get(selected_key, {})
+            if "Time" in data_meta.get("labels", []):
+                x_vector = data_meta["data"][:, 0]  # Use the first column as the time vector
+                canvas.axes.set_xlabel("Time (s)")
+                canvas.axes.set_yscale('linear')
+
+            else:
+                x_vector = current_results.get('frequency_vector', [])["data"]
+                canvas.axes.set_xlabel("Frequency (Hz)")
+                canvas.axes.set_yscale('log')
+                x_vector = np.log10(x_vector)  # Apply log scale for frequency
 
             # Plot Current Data
-            current_data_meta = current_results.get(selected_key, {})
-            if current_data_meta:
-                plot_curve(current_data_meta, linestyle='-')
+            if data_meta:
+                plot_curve(data_meta, x_vector, linestyle='-')
 
             # Plot Old Data if checkbox is checked
             if checkbox.isChecked() and old_results:
                 old_data_meta = old_results.get(selected_key, {})
                 if old_data_meta:
-                    plot_curve(old_data_meta, linestyle='--', color='gray')
+                    plot_curve(old_data_meta, x_vector, linestyle='--', color='gray')
 
             # Plot Saved Data from saved_data_results
             for saved_index, saved_results in enumerate(self.controller.engine.saved_data_results):
                 saved_data_meta = saved_results.results.get(selected_key, {})
                 if saved_data_meta:
                     plot_label = f'Saved {saved_index + 1}'
-                    plot_curve(saved_data_meta, linestyle=':', color=None)  # Color is auto-assigned
+                    plot_curve(saved_data_meta, x_vector, linestyle=':', color=None)  # Color is auto-assigned
 
             # Plot Background Curve if available
             if self.background_curve_data[i] is not None:
                 x_background, y_background = self.background_curve_data[i]
-                # crop x_background to the frequency range
-                mask = (x_background >= self.f_start_value) & (x_background <= self.f_stop_value)
+                # Filter x_background to the current x_vector range, if applicable
+                mask = (x_background >= min(x_vector)) & (x_background <= max(x_vector))
                 x_background_filtered = x_background[mask]
                 y_background_filtered = y_background[mask]
-                canvas.axes.plot(x_background_filtered, y_background_filtered, label='Background Curve')
+                if len(x_background_filtered) == len(y_background_filtered):  # Ensure matching lengths
+                    canvas.axes.plot(x_background_filtered, y_background_filtered, label='Background Curve',
+                                     linestyle=':', color='black')
 
-            canvas.axes.set_xlabel("Frequency (Hz)")
             canvas.axes.set_ylabel(selected_key)
-            canvas.axes.set_xscale('log')
-            canvas.axes.set_yscale('log')
             canvas.axes.grid(which='both')
             canvas.axes.legend()
             canvas.draw()
-
     def plot_results(self, calculation_results):
         """
         Plots the calculation results on the canvas based on the selected key from the combo box a
