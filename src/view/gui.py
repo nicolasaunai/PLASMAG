@@ -127,6 +127,7 @@ class ToolTipLineEdit(QLineEdit):
         self.focusInEvent = self.showCustomToolTip
         self.setPlaceholderText(f"Default: {default_value}")
 
+
     def showCustomToolTip(self, event):
         super().focusInEvent(event)
         self.showToolTip()
@@ -260,6 +261,8 @@ class MainGUI(QMainWindow):
         section. The input fields are organized in a scrollable area for better visibility and usability.
         """
         self.inputs = {}
+
+
 
         for section_name, section_parameters in self.input_parameters.items():
             if section_name == 'SPICE':
@@ -1142,6 +1145,11 @@ class MainGUI(QMainWindow):
                         canvas.axes.plot(x_vector, y_values, label=f"{labels[col_index]} ({units[col_index]})",
                                          linestyle=linestyle, color=color)
 
+        def get_x_vector(data_meta, default_vector):
+            if "Time" in data_meta.get("labels", []):
+                return data_meta["data"][:, 0]  # Use the first column as the time vector
+            return default_vector
+
         for i, (canvas, combo_box, checkbox) in enumerate(zip(self.canvases, self.comboboxes, self.checkboxes)):
             selected_key = combo_box.currentText()
             if not selected_key:
@@ -1152,51 +1160,56 @@ class MainGUI(QMainWindow):
             current_results = self.controller.get_current_results()
             old_results = self.controller.get_old_results()
 
-            # Determine if data is temporal or frequency based and prepare x_vector accordingly
-            data_meta = current_results.get(selected_key, {})
-            if "Time" in data_meta.get("labels", []):
-                x_vector = data_meta["data"][:, 0]  # Use the first column as the time vector
-                canvas.axes.set_xlabel("Time (s)")
-                canvas.axes.set_yscale('linear')
-
-            else:
-                x_vector = current_results.get('frequency_vector', [])["data"]
-                canvas.axes.set_xlabel("Frequency (Hz)")
-                canvas.axes.set_yscale('log')
-                x_vector = np.log10(x_vector)  # Apply log scale for frequency
+            frequency_vector = current_results.get('frequency_vector', [])["data"]
+            default_x_vector = frequency_vector
 
             # Plot Current Data
-            if data_meta:
-                plot_curve(data_meta, x_vector, linestyle='-')
+            current_data_meta = current_results.get(selected_key, {})
+            current_x_vector = get_x_vector(current_data_meta, default_x_vector)
+            if current_data_meta:
+                plot_curve(current_data_meta, current_x_vector, linestyle='-')
+                self.set_labels(current_data_meta, canvas)
 
             # Plot Old Data if checkbox is checked
             if checkbox.isChecked() and old_results:
                 old_data_meta = old_results.get(selected_key, {})
+                old_x_vector = get_x_vector(old_data_meta, default_x_vector)
                 if old_data_meta:
-                    plot_curve(old_data_meta, x_vector, linestyle='--', color='gray')
+                    plot_curve(old_data_meta, old_x_vector, linestyle=':', color='gray')
 
             # Plot Saved Data from saved_data_results
             for saved_index, saved_results in enumerate(self.controller.engine.saved_data_results):
                 saved_data_meta = saved_results.results.get(selected_key, {})
+                saved_x_vector = get_x_vector(saved_data_meta, default_x_vector)
                 if saved_data_meta:
-                    plot_label = f'Saved {saved_index + 1}'
-                    plot_curve(saved_data_meta, x_vector, linestyle=':', color=None)  # Color is auto-assigned
+                    plot_curve(saved_data_meta, saved_x_vector, linestyle='--', color=None)
 
             # Plot Background Curve if available
             if self.background_curve_data[i] is not None:
                 x_background, y_background = self.background_curve_data[i]
-                # Filter x_background to the current x_vector range, if applicable
-                mask = (x_background >= min(x_vector)) & (x_background <= max(x_vector))
+                mask = (x_background >= min(frequency_vector)) & (x_background <= max(frequency_vector))
                 x_background_filtered = x_background[mask]
                 y_background_filtered = y_background[mask]
-                if len(x_background_filtered) == len(y_background_filtered):  # Ensure matching lengths
-                    canvas.axes.plot(x_background_filtered, y_background_filtered, label='Background Curve',
-                                     linestyle=':', color='black')
+                canvas.axes.plot(x_background_filtered, y_background_filtered, label='Background Curve', linestyle='-',
+                                 color='black')
 
-            canvas.axes.set_ylabel(selected_key)
             canvas.axes.grid(which='both')
             canvas.axes.legend()
             canvas.draw()
+
+    def set_labels(self, data_meta, canvas):
+        """Set labels and scales based on data type."""
+        labels = data_meta.get("labels", [])
+        if "Time" in labels:
+            canvas.axes.set_xlabel("Time (s)")
+            canvas.axes.set_yscale('linear')
+            canvas.axes.set_xscale('linear')
+
+        else:
+            canvas.axes.set_xlabel("Frequency (Hz)")
+            canvas.axes.set_yscale('log')
+            canvas.axes.set_xscale('log')
+
     def plot_results(self, calculation_results):
         """
         Plots the calculation results on the canvas based on the selected key from the combo box a
