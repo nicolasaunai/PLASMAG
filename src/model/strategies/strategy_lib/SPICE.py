@@ -237,14 +237,6 @@ class SPICE_impedance(CalculationStrategy):
         # convert temperature to degrees Celsius
         temperature = temperature - 273.15
 
-        # Define amplitude and frequency of input sinusoid
-        amp = 0.1 @ u_V
-        freq = 1 @ u_kHz
-
-        # Define transient simulation step time and stop time
-        steptime = 1 @ u_us
-        finaltime = 5 * (1 / freq)
-
         circuit = Circuit(' Imp JUICE')
 
         circuit.SinusoidalVoltageSource('V1', 'N1', circuit.gnd, amplitude=1 @ u_V, frequency=1 @ u_kHz)
@@ -265,12 +257,9 @@ class SPICE_impedance(CalculationStrategy):
 
         Z = voltage_N1 / current_R2
 
-        # print all nodes in the analysis
 
         simulation_freq = np.array(analysis.frequency)
-
         interpolated_Z = np.interp(frequency_vector, simulation_freq, Z)
-
         result = np.column_stack((frequency_vector, interpolated_Z))
 
         return {

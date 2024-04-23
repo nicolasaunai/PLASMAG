@@ -1,0 +1,40 @@
+* connections:   non-inverting input
+*                |  inverting input
+*                |  |  positive power supply
+*                |  |  |  negative power supply
+*                |  |  |  |  output
+*                |  |  |  |  |
+.subckt UA741    1  2  3  4  5  ic=0
+C1   11 12 4.664p ic={ic}
+C2    6  7 20.00p ic={ic}
+DC    5 53 DX
+DE   54  5 DX
+DLP  90 91 DX
+DLN  92 90 DX
+DP    4  3 DX
+EGND 99  0 POLY(2) (3,0) (4,0) 0 .5 .5
+FB    7 99 POLY(5) VB VC VE VLP VLN 0 10.61MEG -10u 10MEG 10MEG -10MEG
+GA    6  0 11 12 137.7u
+GCM   0  6 10 99 2.574n
+IEE  10  4 DC 10.16u
+HLIM 90  0 VLIM 1K
+Q1   11  2 13 QX
+Q2   12  1 14 QX
+R2    6  9 100.0k
+RC1   3 11 7.957k
+RC2   3 12 7.957k
+RE1  13 10 2.740k
+RE2  14 10 2.740k
+REE  10 99 19.69MEG
+RO1   8  5 150
+RO2   7 99 150
+RP    3  4 18.11k
+VB    9  0 DC 0
+VC    3 53 DC 2.600
+VE   54  4 DC 2.600
+VLIM  7  8 DC 0
+VLP  91  0 DC 25
+VLN   0 92 DC 25
+.model DX D(IS=800.0E-18)
+.model QX NPN(IS=800.0E-18 BF=62.50)
+.ends
