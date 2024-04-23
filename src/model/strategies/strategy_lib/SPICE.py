@@ -229,6 +229,9 @@ class SPICE_impedance(CalculationStrategy):
         inductance = dependencies['inductance']['data']
 
         frequency_vector = dependencies['frequency_vector']['data']
+
+        nb_points_per_decade = parameters.data['nb_points_per_decade']
+
         logger = Logging.setup_logging()
 
         # convert temperature to degrees Celsius
@@ -252,8 +255,8 @@ class SPICE_impedance(CalculationStrategy):
 
         circuit.R2.plus.add_current_probe(circuit)
 
-        simulator = circuit.simulator(temperature=25, nominal_temperature=25)
-        analysis = simulator.ac(start_frequency=f_start @ u_Hz, stop_frequency=f_stop @ u_Hz, number_of_points=1000,
+        simulator = circuit.simulator(temperature=temperature, nominal_temperature=25)
+        analysis = simulator.ac(start_frequency=f_start @ u_Hz, stop_frequency=f_stop @ u_Hz, number_of_points=nb_points_per_decade,
                                 variation='dec')  # 1 to 1MHz, 10 points per decade
 
         frequency = analysis.frequency
