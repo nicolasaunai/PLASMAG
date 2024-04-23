@@ -217,6 +217,71 @@ class SPICE_op_Amp_transcient(CalculationStrategy):
                 "R4", "R5"]
 
 
+class SPICE_impedance(CalculationStrategy):
+    def calculate(self, dependencies: dict, parameters: InputParameters):
+        temperature = parameters.data['temperature']
+        f_start = parameters.data['f_start']
+        f_stop = parameters.data['f_stop']
+
+
+        resistance = dependencies['resistance']['data']
+        capacitance = dependencies['capacitance']['data']
+        inductance = dependencies['inductance']['data']
+
+        frequency_vector = dependencies['frequency_vector']['data']
+        logger = Logging.setup_logging()
+
+        # convert temperature to degrees Celsius
+        temperature = temperature - 273.15
+
+        # Define amplitude and frequency of input sinusoid
+        amp = 0.1 @ u_V
+        freq = 1 @ u_kHz
+
+        # Define transient simulation step time and stop time
+        steptime = 1 @ u_us
+        finaltime = 5 * (1 / freq)
+
+        circuit = Circuit(' Imp JUICE')
+
+        circuit.SinusoidalVoltageSource('V1', 'N1', circuit.gnd, amplitude=1 @ u_V, frequency=1 @ u_kHz)
+        circuit.R('1', 'N001', 'N1', resistance @ u_Ω)
+        circuit.C('1', 'N2', 'N1', capacitance @ u_F)
+        circuit.L('1', 'N2', 'N001', inductance @ u_H)
+        circuit.R('2', 'N2', circuit.gnd, 1 @ u_kΩ)
+
+        circuit.R2.plus.add_current_probe(circuit)
+
+        simulator = circuit.simulator(temperature=25, nominal_temperature=25)
+        analysis = simulator.ac(start_frequency=f_start @ u_Hz, stop_frequency=f_stop @ u_Hz, number_of_points=1000,
+                                variation='dec')  # 1 to 1MHz, 10 points per decade
+
+        frequency = analysis.frequency
+        voltage_N1 = np.absolute(analysis['n1'])
+        current_R2 = np.absolute(analysis['vr2_plus'])
+
+        Z = voltage_N1 / current_R2
+
+        # print all nodes in the analysis
+
+        simulation_freq = np.array(analysis.frequency)
+
+        interpolated_Z = np.interp(frequency_vector, simulation_freq, Z)
+
+        result = np.column_stack((frequency_vector, interpolated_Z))
+
+        return {
+            "data": result,
+            "labels": ["Frequency", "Impedance"],
+            "units": ["Hz", "Ohm"]
+        }
+
+    @staticmethod
+    def get_dependencies():
+        return ['frequency_vector', "f_start", "f_stop", "spice_resistance_test", "temperature", "capacitance",
+                "inductance", "resistance"]
+
+
 if __name__ == "__main__" :
     ##*********************************************
     import math
@@ -240,74 +305,48 @@ if __name__ == "__main__" :
     # Set the path where the op-amp uA741.lib file is located
     # Place the *.lib file in the same folder as the script file
 
-    opAMP = 'spice_lib/uA741.lib'
+    f_start = 1
+    f_stop = 1000000
+    circuit = Circuit(' Imp JUICE')
 
-    logger = Logging.setup_logging()
+    circuit.SinusoidalVoltageSource('V1', 'N1', circuit.gnd, amplitude=1 @ u_V, frequency=1 @ u_kHz)
+    circuit.R('1', 'N001', 'N1', 550 @ u_Ω)
+    circuit.C('1', 'N2', 'N1', 150 @ u_pF)
+    circuit.L('1', 'N2', 'N001', 12 @ u_H)
+    circuit.R('2', 'N2', circuit.gnd, 1 @ u_kΩ)
 
+    circuit.R2.plus.add_current_probe(circuit)
 
-
-    ##*********************************************
-    ## Circuit Netlist
-    circuit = Circuit('Op-amp circuits - Example 1 Non-inverting op-amp Amplifier')
-    circuit.include(opAMP)
-
-    # Define amplitude and frequency of input sinusoid
-    amp = 0.1 @ u_V
-    freq = 1 @ u_kHz
-
-    # Define transient simulation step time and stop time
-    steptime = 1 @ u_us
-    finaltime = 5 * (1 / freq)
-
-    source = circuit.SinusoidalVoltageSource(1, 'input', circuit.gnd, amplitude=amp, frequency=freq)
-    circuit.V(2, '+Vcc', circuit.gnd, 15 @ u_V)
-    circuit.V(3, '-Vcc', circuit.gnd, -15 @ u_V)
-
-    circuit.X(1, 'uA741', 'input', 'v-', '+Vcc', '-Vcc', 'out')
-
-    circuit.R(1, 'v-', circuit.gnd, 1 @ u_kΩ)
-    circuit.R(2, 'v-', 'x', 2 @ u_kΩ)
-    circuit.R(3, 'x', 'out', 3 @ u_kΩ)
-    circuit.R(4, 'x', circuit.gnd, 4 @ u_kΩ)
-    circuit.R('L', 'out', circuit.gnd, 10 @ u_kΩ)
-
-    ##*********************************************
-    ## Simulation: Transient Analysis
     simulator = circuit.simulator(temperature=25, nominal_temperature=25)
-    print(simulator)
-    analysis = simulator.transient(step_time=steptime, end_time=finaltime)
+    analysis = simulator.ac(start_frequency=f_start @ u_Hz, stop_frequency=f_stop @ u_Hz, number_of_points=10,
+                            variation='dec')  # 1 to 1MHz, 10 points per decade
 
-    print(analysis['out'])
+    frequency = analysis.frequency.as_ndarray()
+    voltage_N1 = analysis['n1'].as_ndarray()
+    current_R2 = analysis['vr2_plus'].as_ndarray()
 
-    ##*********************************************
-    ## Theory: See video Op-amp circuits - Example 1 Non-inverting op-amp Amplifier
+    Z = voltage_N1 / current_R2
 
-    Gain = (1 + circuit.R2.resistance / circuit.R1.resistance +
-            circuit.R3.resistance / circuit.R1.resistance +
-            circuit.R3.resistance / circuit.R4.resistance +
-            (circuit.R2.resistance * circuit.R3.resistance) /
-            (circuit.R1.resistance * circuit.R4.resistance))
+    # plot imepdance and phase
+    fig, ax = plt.subplots(2, 1, figsize=(10, 7))
+    ax[0].semilogx(frequency, np.abs(Z))
+    ax[0].semilogy()
+    ax[0].set_ylabel('Impedance [Ohm]')
+    ax[0].set_title('Impedance of the circuit')
+    ax[0].grid(True)
 
-    time = np.array(analysis.time)
-    vout = Gain * (amp) * (np.sin(2 * np.pi * freq * time))
+    ax[1].semilogx(frequency, np.angle(Z, deg=True))
+    ax[1].set_xlabel('Frequency [Hz]')
+    ax[1].set_ylabel('Phase [°]')
+    ax[1].set_title('Phase of the circuit')
+    ax[1].grid(True)
 
-    print(np.array(analysis['out']))
-    ##*********************************************
-    # PLOTTING COMMANDS
-
-    figure, axe = plt.subplots(figsize=(10, 6))
-
-    print(np.array(analysis['input']))
-    print(analysis.time)
-
-    plt.title('Op-amp circuits - Example 2 Inverting op-amp Amplifier')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Voltage [V]')
-    plt.grid()
-    plt.plot(time, np.array(analysis['input']), label='Input')
-    plt.plot(time, np.array(analysis['out']), label='Output')
-    plt.plot(time, vout, label='Theory')
-    plt.legend()
-
+    plt.tight_layout()
     plt.show()
+
+
+
+
+
+
 
