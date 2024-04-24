@@ -23,8 +23,6 @@ class SPICE_test(CalculationStrategy):
         # convert temperature to degrees Celsius
         temperature = temperature - 273.15
 
-
-
         circuit = Circuit('AC analysis Circuit')
 
         circuit.model("CustomDiode", 'D', IS=4.352 @ u_nA, RS=0.6459 @ u_Ohm, BV=110 @ u_V, IBV=0.0001 @ u_V, N=1.906)
@@ -252,7 +250,7 @@ class SPICE_impedance(CalculationStrategy):
                                 variation='dec')  # 1 to 1MHz, 10 points per decade
 
         frequency = analysis.frequency
-        voltage_N1 = np.absolute(analysis['n1'])
+        voltage_N1 = np.absolute(analysis['N001'])
         current_R2 = np.absolute(analysis['vr2_plus'])
 
         Z = voltage_N1 / current_R2

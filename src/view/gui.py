@@ -4,6 +4,7 @@ PLASMAG GUI module
 """
 import copy
 import csv
+import importlib
 import json
 import os
 import sys
@@ -36,6 +37,7 @@ class ResizableImageLabel(QLabel):
     def __init__(self, pixmap, parent=None):
         super().__init__(parent)
         self.original_pixmap = pixmap
+        self.unresized_pixmap = pixmap
         self.setScaledContents(False)
 
     def resizeEvent(self, event):
@@ -49,6 +51,13 @@ class ResizableImageLabel(QLabel):
 
     def mousePressEvent(self, event):
         self.clicked.emit()
+
+    def setPixmap(self, pixmap):
+        self.original_pixmap = pixmap
+        super().setPixmap(pixmap)
+
+    def get_pixmap(self):
+        return self.unresized_pixmap
 
 
 class EnlargedImageDialog(QDialog):
@@ -237,11 +246,14 @@ class MainGUI(QMainWindow):
         self.button_states = {}
         self.saved_parameters = []
         self.block_calculation = False
+        self.spice_configs = {}
 
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 2560, 1440)  # Adjust size as needed
 
         self.load_default_parameters()
+        self.load_spice_configs()
+        self.merge_spice_parameters()
 
         self.f_start_value = self.input_parameters["misc"]['f_start']['default']
         self.f_stop_value = self.input_parameters["misc"]['f_stop']['default']
@@ -251,8 +263,24 @@ class MainGUI(QMainWindow):
         self.init_ui()
         self.init_menu()
 
+        self.update_spice_parameters_ui(0)
+
         self.showMaximized()
 
+    def load_spice_configs(self):
+        try:
+            current_dir = os.path.dirname(os.path.realpath(__file__))
+            spice_config_path = os.path.join(current_dir, '..', '..', 'data', 'SPICE.json')
+            spice_config_path = os.path.normpath(spice_config_path)
+            with open(spice_config_path, 'r', encoding='utf-8') as file:
+                self.spice_configs = json.load(file)['Circuits']
+            print("SPICE configurations loaded successfully.")
+        except FileNotFoundError:
+            print(f"SPICE configuration file not found at {spice_config_path}.")
+            self.spice_configs = {}
+        except json.JSONDecodeError as e:
+            print(f"Error decoding SPICE.json: {e}")
+            self.spice_configs = {}
 
     def init_parameters_input(self):
         """
@@ -530,8 +558,9 @@ class MainGUI(QMainWindow):
         dialog.exec()
         QApplication.instance().removeEventFilter(dialog)
     def init_spice_settings(self):
-        spice_group_box = QGroupBox()
+        spice_group_box = QGroupBox("SPICE")
         spice_layout = QVBoxLayout()
+
 
         self.toggle_spice_button = QPushButton("+")
         self.toggle_spice_button.setFixedWidth(30)
@@ -539,11 +568,16 @@ class MainGUI(QMainWindow):
         spice_layout.addWidget(self.toggle_spice_button)
 
         self.spice_contents = QWidget()
-        spice_contents_layout = QVBoxLayout(self.spice_contents)  # Main layout for SPICE contents
+        spice_contents_layout = QVBoxLayout(self.spice_contents)
+        self.spice_circuit_combo = QComboBox()
+        self.spice_circuit_combo.addItems(self.spice_configs.keys())
+        self.spice_circuit_combo.currentIndexChanged.connect(self.update_spice_parameters_ui)
+        spice_contents_layout.addWidget(self.spice_circuit_combo)
 
         # Create a sub-layout for parameters only
-        params_layout = QGridLayout()
-        spice_contents_layout.addLayout(params_layout)  # Add the grid layout to the main vertical layout
+        self.spice_params_layout = QGridLayout()
+        spice_contents_layout.addLayout(self.spice_params_layout)
+
 
         row = 0  # Initialize row counter
         if 'SPICE' in self.input_parameters:
@@ -559,13 +593,13 @@ class MainGUI(QMainWindow):
                 line_edit.textChanged.connect(lambda _, le=line_edit, param=param_name: self.validate_input(le, param))
 
 
-                params_layout.addWidget(label, row, 0)  # Add label to the grid
-                params_layout.addWidget(line_edit, row, 1)  # Add line edit next to label
+                self.spice_params_layout.addWidget(label, row, 0)  # Add label to the grid
+                self.spice_params_layout.addWidget(line_edit, row, 1)  # Add line edit next to label
                 row += 1
 
-        circuit_image_label = ResizableImageLabel(QPixmap("ressources/ASIC_image_1.png"))
-        circuit_image_label.clicked.connect(lambda: self.show_enlarged_image(QPixmap("ressources/ASIC_image_1.png")))
-        spice_contents_layout.addWidget(circuit_image_label)
+        self.circuit_image_label = ResizableImageLabel(QPixmap("ressources/ASIC_image_1.png"))
+        self.circuit_image_label.clicked.connect(lambda: self.show_enlarged_image(self.circuit_image_label.get_pixmap()))
+        spice_contents_layout.addWidget(self.circuit_image_label)
 
         self.spice_contents.setHidden(True)
         spice_layout.addWidget(self.spice_contents)
@@ -573,12 +607,81 @@ class MainGUI(QMainWindow):
 
         return spice_group_box
 
+    def update_spice_parameters_ui(self, index):
+        circuit_name = self.spice_circuit_combo.itemText(index)  # Get selected circuit name
+        circuit_config = self.spice_configs[circuit_name]  # Get the configuration for the selected circuit
+        self.saved_circuit_name = circuit_name  # Store the selected circuit name
+
+        for i in reversed(range(self.spice_params_layout.count())):
+            widget = self.spice_params_layout.itemAt(i).widget()
+            if widget is not None:
+                widget.deleteLater()
+                if widget.objectName() in self.inputs:
+                    del self.inputs[widget.objectName()]
+
+        row = 0
+        for param_name, param_info in circuit_config['parameters'].items():
+            label = QLabel(f"{param_name}:")
+            default_value = str(param_info['default'])
+            tooltip_text = param_info.get('description', '')
+            line_edit = ToolTipLineEdit(default_value, tooltip_text)
+            line_edit.setObjectName(param_name)
+            line_edit.returnPressed.connect(self.calculate)
+            self.inputs[param_name] = line_edit
+
+            line_edit.textChanged.connect(lambda _, le=line_edit, param=param_name: self.validate_input(le, param))
+            line_edit.mousePressEvent = lambda event, le=line_edit, param=param_name: self.bind_slider_to_input(le,
+                                                                                                                param)
+
+            self.spice_params_layout.addWidget(label, row, 0)
+            self.spice_params_layout.addWidget(line_edit, row, 1)
+            row += 1
+
+        self.reload_pixmap()
+
+        # get the "strategy" key from the circuit configuration
+        strategy = circuit_config.get('strategies', None)
+        if strategy is not None:
+            strategies_loaded = self.load_strategy(strategy)
+            if strategies_loaded:
+                for strategy_name, strategy_instance in strategies_loaded.items():
+                    print(f"Loaded strategy {strategy_name}")
+                    print(type(strategy_instance))
+                    print(strategy_instance)
+                    self.update_node_strategy(strategy_name, strategy_instance)
+    def reload_pixmap(self):
+        circuit_name = self.spice_circuit_combo.currentText()
+        circuit_config = self.spice_configs[circuit_name]
+        image_path = "ressources" + os.sep + circuit_config['image']
+        print("Loading image from:", image_path)  # Print to debug the correct path
+        pixmap = QPixmap(image_path)
+        if pixmap.isNull():
+            print("Failed to load image from:", image_path)  # Debug information if loading fails
+        else:
+            self.circuit_image_label.setPixmap(
+                pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            print("Image loaded successfully from:", image_path)  # Confirm image load success
+
 
     def toggle_spice_visibility(self):
         show = self.spice_contents.isHidden()
         self.spice_contents.setVisible(show)
         self.toggle_spice_button.setText("-" if show else "+")
         self.adjust_spice_splitter(show)
+        self.reload_pixmap()
+
+    def merge_spice_parameters(self):
+        if self.spice_configs is not None:
+            for circuit_name, circuit_details in self.spice_configs.items():
+                if 'parameters' in circuit_details:
+                    if 'SPICE' not in self.input_parameters:
+                        self.input_parameters['SPICE'] = {}
+
+                    self.input_parameters['SPICE'].update(circuit_details['parameters'])
+
+            print("Merge successful.")
+        else:
+            print("No circuits found in SPICE configurations.")
 
     def adjust_spice_splitter(self, show):
         sizes = self.main_splitter.sizes()
@@ -1056,8 +1159,13 @@ class MainGUI(QMainWindow):
         else:  # fine adjustment, preserve integer part from coarse slider
             new_value = int(coarse_value) + fine_value
 
-        line_edit.setText(f"{new_value:.3f}")  # Format with 3 decimal places
-        self.calculation_timer.start()
+        try :
+            line_edit.setText(f"{new_value:.3f}")  # Format with 3 decimal places
+            self.calculation_timer.start()
+        except RuntimeError as e:
+            print(f"Error updating input value: {e}")
+
+
 
     def retrieve_parameters(self):
         params_dict = {}
@@ -1255,6 +1363,7 @@ class MainGUI(QMainWindow):
         # Iterate through categories and their parameters
         print(f"reset params {reload}")
         self.load_default_parameters(reload=reload)
+        self.merge_spice_parameters()
         for category, parameters in self.input_parameters.items():
             for parameter in parameters:
                 if parameter in self.inputs:
@@ -1345,6 +1454,9 @@ class MainGUI(QMainWindow):
         self.strategy_tab.layout().addWidget(scroll_area)
 
     def update_node_strategy(self, node_name, strategy_class):
+        print("update")
+        print(strategy_class)
+        print(type(strategy_class))
         print(f"Gui - try to update strategy for {node_name} to {strategy_class.__name__}")
 
         params_dict = {}
@@ -1410,6 +1522,34 @@ class MainGUI(QMainWindow):
                 print(f"Params reset to saved state {index}")
                 self.calculate()
 
+    def load_strategy(self, strategies_info) -> dict:
+
+        strategies_instances = {}
+
+        for strategy_name, strategy_info in strategies_info.items():
+            module_path = strategy_info["file"].replace(".py", "").replace("/", ".")
+            class_name = strategy_name
+
+            try:
+                module = importlib.import_module(module_path)
+            except ImportError as e:
+                print(f"Failed to import module {module_path}: {e}")
+                continue
+
+            try:
+                strategy_class = getattr(module, class_name)
+            except AttributeError as e:
+                print(f"Failed to get class {class_name} from module {module_path}: {e}")
+                continue
+
+            try:
+                strategy_instance = strategy_class
+                strategies_instances[strategy_name] = strategy_instance
+                print(f"Loaded strategy {strategy_name}")
+            except Exception as e:
+                print(f"Failed to instantiate {class_name}: {e}")
+
+        return strategies_instances
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

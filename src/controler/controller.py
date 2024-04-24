@@ -2,6 +2,8 @@
  src/controller/controller.py
  PLASMAG 2024 Software, LPP
 """
+import importlib
+import json
 
 from src.model.strategies.strategy_lib.Noise import PSD_R_cr, PSD_R_cr_filtered, PSD_R_Coil, PSD_R_Coil_filtered, \
     PSD_Flicker, PSD_e_en, PSD_e_en_filtered, PSD_e_in, PSD_e_in_filtered, PSD_Total, PSD_Total_filtered, \
@@ -151,22 +153,22 @@ STRATEGY_MAP = {
         "default": NEMI_FIltered,
         "strategies": [NEMI_FIltered,NEMI_FIlteredv2, NEMI_FIlteredv3]
     },
-    "SPICE_test": {
-        "default": SPICE_test,
-        "strategies": [SPICE_test]
-    },
-    "SPICE_op_Amp_gain" : {
-        "default": SPICE_op_Amp_gain,
-        "strategies": [SPICE_op_Amp_gain]
-    },
-    "SPICE_op_Amp_transcient": {
-        "default": SPICE_op_Amp_transcient,
-        "strategies": [SPICE_op_Amp_transcient]
-    },
-    "SPICE_impedance" : {
-        "default": SPICE_impedance,
-        "strategies": [SPICE_impedance]
-    }
+    # "SPICE_test": {
+    #     "default": SPICE_test,
+    #     "strategies": [SPICE_test]
+    # },
+    # "SPICE_op_Amp_gain" : {
+    #     "default": SPICE_op_Amp_gain,
+    #     "strategies": [SPICE_op_Amp_gain]
+    # },
+    # "SPICE_op_Amp_transcient": {
+    #     "default": SPICE_op_Amp_transcient,
+    #     "strategies": [SPICE_op_Amp_transcient]
+    # },
+    # "SPICE_impedance" : {
+    #     "default": SPICE_impedance,
+    #     "strategies": [SPICE_impedance]
+    # }
 }
 class CalculationController:
     """
@@ -188,6 +190,7 @@ class CalculationController:
         self.engine = CalculationEngine(backups_count=backups_count)
         self.is_data_ready = False
         self.params = None
+        self.strategy_map = {}
 
         for node_name, info in STRATEGY_MAP.items():
             default_strategy = info["default"]()
@@ -274,4 +277,6 @@ class CalculationController:
 
     def set_node_strategy(self, node_name, strategy_class, params_dict):
         strategy_instance = strategy_class()
+        print(strategy_instance)
         self.engine.swap_strategy_for_node(node_name, strategy_instance, params_dict)
+
