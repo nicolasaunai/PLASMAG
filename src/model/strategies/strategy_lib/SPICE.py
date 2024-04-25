@@ -268,7 +268,7 @@ class SPICE_impedance(CalculationStrategy):
 
     @staticmethod
     def get_dependencies():
-        return ['frequency_vector', "f_start", "f_stop", "spice_resistance_test", "temperature", "capacitance",
+        return ['frequency_vector', "f_start", "f_stop", "temperature", "capacitance",
                 "inductance", "resistance"]
 
 

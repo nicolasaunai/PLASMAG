@@ -202,6 +202,7 @@ class CalculationController:
     def delete_spice_nodes(self, spice_nodes : list):
         for node_name in spice_nodes:
             self.engine.delete_node(node_name)
+            print(f"Deleted node {node_name}")
     def update_parameters(self, params_dict):
         """
                Updates the input parameters of the calculation engine using the provided dictionary. This method

@@ -17,7 +17,7 @@ import pandas as pd
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QPoint, QEvent
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea, QFileDialog, \
-    QMessageBox, QInputDialog, QTabWidget, QToolTip, QGroupBox, QSplitter, QDialog
+    QMessageBox, QInputDialog, QTabWidget, QToolTip, QGroupBox, QSplitter, QDialog, QProgressDialog
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QSplashScreen, QApplication
 
@@ -52,8 +52,10 @@ class ResizableImageLabel(QLabel):
     def mousePressEvent(self, event):
         self.clicked.emit()
 
-    def setPixmap(self, pixmap):
+    def setPixmap(self, pixmap, unreized_pixmap=None):
         self.original_pixmap = pixmap
+        if unreized_pixmap:
+            self.unresized_pixmap = unreized_pixmap
         super().setPixmap(pixmap)
 
     def get_pixmap(self):
@@ -248,6 +250,9 @@ class MainGUI(QMainWindow):
         self.block_calculation = False
         self.spice_configs = {}
         self.saved_spice_strategies = []
+        self.saved_spice_parameters = []
+        self.first_run = True
+
 
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 2560, 1440)  # Adjust size as needed
@@ -598,7 +603,7 @@ class MainGUI(QMainWindow):
                 self.spice_params_layout.addWidget(line_edit, row, 1)  # Add line edit next to label
                 row += 1
 
-        self.circuit_image_label = ResizableImageLabel(QPixmap("ressources/ASIC_image_1.png"))
+        self.circuit_image_label = ResizableImageLabel(QPixmap("ASIC_image_1.png"))
         self.circuit_image_label.clicked.connect(lambda: self.show_enlarged_image(self.circuit_image_label.get_pixmap()))
         spice_contents_layout.addWidget(self.circuit_image_label)
 
@@ -613,10 +618,53 @@ class MainGUI(QMainWindow):
         circuit_config = self.spice_configs[circuit_name]  # Get the configuration for the selected circuit
         self.saved_circuit_name = circuit_name  # Store the selected circuit name
 
+        if not self.first_run:
+            strategy = circuit_config.get('strategies', None)
+            num_strategies = len(strategy) if strategy else 0
+            progress_dialog = QProgressDialog("Loading strategies...", "Cancel", 0, num_strategies, self)
+            progress_dialog.setModal(True)
+            progress_dialog.setMinimumDuration(0)
+            progress_value = 0
+
+        if len(self.saved_spice_parameters) > 0:
+
+            self.saved_spice_strategies += self.saved_spice_parameters
+            print(self.saved_spice_strategies)
+            self.saved_spice_parameters = []
+
         # get the "current" spice strategies
         if len(self.saved_spice_strategies) > 0:
             self.controller.delete_spice_nodes(self.saved_spice_strategies)
             self.saved_spice_strategies = []
+            print(self.controller.engine.nodes)
+
+
+        for i in reversed(range(self.spice_params_layout.count())):
+            widget = self.spice_params_layout.itemAt(i).widget()
+            if widget is not None:
+                widget.deleteLater()
+                if widget.objectName() in self.inputs:
+                    del self.inputs[widget.objectName()]
+
+        row = 0
+        for param_name, param_info in circuit_config['parameters'].items():
+            self.saved_spice_parameters.append(param_name)
+            label = QLabel(f"{param_name}:")
+            default_value = str(param_info['default'])
+            tooltip_text = param_info.get('description', '')
+            line_edit = ToolTipLineEdit(default_value, tooltip_text)
+            line_edit.setObjectName(param_name)
+            line_edit.returnPressed.connect(self.calculate)
+            self.inputs[param_name] = line_edit
+
+            line_edit.textChanged.connect(lambda _, le=line_edit, param=param_name: self.validate_input(le, param))
+            line_edit.mousePressEvent = lambda event, le=line_edit, param=param_name: self.bind_slider_to_input(le,
+                                                                                                                param)
+            self.spice_params_layout.addWidget(label, row, 0)
+            self.spice_params_layout.addWidget(line_edit, row, 1)
+            row += 1
+
+        self.reload_pixmap()
 
         # get the "strategy" key from the circuit configuration
         strategy = circuit_config.get('strategies', None)
@@ -630,45 +678,25 @@ class MainGUI(QMainWindow):
                     print(strategy_instance)
                     self.update_node_strategy(strategy_name, strategy_instance)
 
-        for i in reversed(range(self.spice_params_layout.count())):
-            widget = self.spice_params_layout.itemAt(i).widget()
-            if widget is not None:
-                widget.deleteLater()
-                if widget.objectName() in self.inputs:
-                    del self.inputs[widget.objectName()]
+                    if not self.first_run:
+                        progress_value += 1
+                        progress_dialog.setValue(progress_value)
 
-        row = 0
-        for param_name, param_info in circuit_config['parameters'].items():
-            label = QLabel(f"{param_name}:")
-            default_value = str(param_info['default'])
-            tooltip_text = param_info.get('description', '')
-            line_edit = ToolTipLineEdit(default_value, tooltip_text)
-            line_edit.setObjectName(param_name)
-            line_edit.returnPressed.connect(self.calculate)
-            self.inputs[param_name] = line_edit
+        if not self.first_run:
+            progress_dialog.setValue(num_strategies)
 
-            line_edit.textChanged.connect(lambda _, le=line_edit, param=param_name: self.validate_input(le, param))
-            line_edit.mousePressEvent = lambda event, le=line_edit, param=param_name: self.bind_slider_to_input(le,
-                                                                                                                param)
-
-            self.spice_params_layout.addWidget(label, row, 0)
-            self.spice_params_layout.addWidget(line_edit, row, 1)
-            row += 1
-
-        self.reload_pixmap()
-
-
+        self.first_run = False
     def reload_pixmap(self):
         circuit_name = self.spice_circuit_combo.currentText()
         circuit_config = self.spice_configs[circuit_name]
         image_path = "ressources" + os.sep + circuit_config['image']
-        print("Loading image from:", image_path)
+
         pixmap = QPixmap(image_path)
         if pixmap.isNull():
             print("Failed to load image from:", image_path)
         else:
             self.circuit_image_label.setPixmap(
-                pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation), unreized_pixmap=pixmap)
             print("Image loaded successfully from:", image_path)
 
 
@@ -1186,7 +1214,11 @@ class MainGUI(QMainWindow):
                     continue
 
                 if param in self.inputs:
-                    text = self.inputs[param].text()
+                    try :
+                        text = self.inputs[param].text()
+                    except RuntimeError as e:
+                        print(f"Error retrieving input value: {e}")
+                        continue
                     try:
                         value = float(text)
                         input_unit = attrs.get('input_unit', '')
@@ -1476,7 +1508,10 @@ class MainGUI(QMainWindow):
                     continue
 
                 if param in self.inputs:
-                    text = self.inputs[param].text()
+                    try :
+                     text = self.inputs[param].text()
+                    except RuntimeError :
+                        pass
                     try:
                         value = float(text)
                         input_unit = attrs.get('input_unit', '')

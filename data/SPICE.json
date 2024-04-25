@@ -1,5 +1,14 @@
 {
   "Circuits" : {
+     "NO Circuit Selected" : {
+      "name" : "Spice test OP AMP",
+      "description" : "A simple test circuit for the spice simulator",
+      "image" : "PLASMAG_logo_v1.png",
+      "parameters" : {
+      },
+      "strategies" : {
+      }
+    },
     "spice_test" : {
       "name" : "Spice test OP AMP",
       "description" : "A simple test circuit for the spice simulator",
@@ -46,6 +55,14 @@
             "target_unit": ""
         },
          "spice_resistance_test" : {
+            "default": 1,
+            "min": 1,
+            "max": 10000,
+            "description": "Spice resistance test",
+            "input_unit": "",
+            "target_unit": ""
+        },
+        "spice_resistance_test2" : {
             "default": 1,
             "min": 1,
             "max": 10000,
@@ -112,6 +129,14 @@
         },
         "R5": {
             "default": 5000,
+            "min": 1,
+            "max": 10000,
+            "description": "Spice resistance test",
+            "input_unit": "",
+            "target_unit": ""
+        },
+         "spice_resistance_test" : {
+            "default": 1,
             "min": 1,
             "max": 10000,
             "description": "Spice resistance test",
