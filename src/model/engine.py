@@ -246,6 +246,25 @@ class CalculationEngine:
         self.check_for_cycles()
         self.build_inverse_dependencies()
 
+    def delete_node(self, node_name):
+        """
+        Deletes a node from the calculation graph.
+        :param node_name:
+        :return:
+        """
+
+        if node_name in self.nodes:
+            try :
+                del self.nodes[node_name]
+                self.build_inverse_dependencies()
+                self.check_for_cycles()
+            except Exception as e:
+                print(f"Error while deleting node {node_name} : {e}")
+        else:
+            print(f"Node {node_name} not found in the calculation graph.")
+
+
+
     def get_affected_nodes(self, changed_params : dict):
         """
         Identifies nodes affected by the changed parameters.

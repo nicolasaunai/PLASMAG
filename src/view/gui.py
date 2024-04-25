@@ -247,6 +247,7 @@ class MainGUI(QMainWindow):
         self.saved_parameters = []
         self.block_calculation = False
         self.spice_configs = {}
+        self.saved_spice_strategies = []
 
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 2560, 1440)  # Adjust size as needed
@@ -612,6 +613,23 @@ class MainGUI(QMainWindow):
         circuit_config = self.spice_configs[circuit_name]  # Get the configuration for the selected circuit
         self.saved_circuit_name = circuit_name  # Store the selected circuit name
 
+        # get the "current" spice strategies
+        if len(self.saved_spice_strategies) > 0:
+            self.controller.delete_spice_nodes(self.saved_spice_strategies)
+            self.saved_spice_strategies = []
+
+        # get the "strategy" key from the circuit configuration
+        strategy = circuit_config.get('strategies', None)
+        if strategy is not None:
+            strategies_loaded = self.load_strategy(strategy)
+            if strategies_loaded:
+                for strategy_name, strategy_instance in strategies_loaded.items():
+                    self.saved_spice_strategies.append(strategy_name)
+                    print(f"Loaded strategy {strategy_name}")
+                    print(type(strategy_instance))
+                    print(strategy_instance)
+                    self.update_node_strategy(strategy_name, strategy_instance)
+
         for i in reversed(range(self.spice_params_layout.count())):
             widget = self.spice_params_layout.itemAt(i).widget()
             if widget is not None:
@@ -639,28 +657,19 @@ class MainGUI(QMainWindow):
 
         self.reload_pixmap()
 
-        # get the "strategy" key from the circuit configuration
-        strategy = circuit_config.get('strategies', None)
-        if strategy is not None:
-            strategies_loaded = self.load_strategy(strategy)
-            if strategies_loaded:
-                for strategy_name, strategy_instance in strategies_loaded.items():
-                    print(f"Loaded strategy {strategy_name}")
-                    print(type(strategy_instance))
-                    print(strategy_instance)
-                    self.update_node_strategy(strategy_name, strategy_instance)
+
     def reload_pixmap(self):
         circuit_name = self.spice_circuit_combo.currentText()
         circuit_config = self.spice_configs[circuit_name]
         image_path = "ressources" + os.sep + circuit_config['image']
-        print("Loading image from:", image_path)  # Print to debug the correct path
+        print("Loading image from:", image_path)
         pixmap = QPixmap(image_path)
         if pixmap.isNull():
-            print("Failed to load image from:", image_path)  # Debug information if loading fails
+            print("Failed to load image from:", image_path)
         else:
             self.circuit_image_label.setPixmap(
                 pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-            print("Image loaded successfully from:", image_path)  # Confirm image load success
+            print("Image loaded successfully from:", image_path)
 
 
     def toggle_spice_visibility(self):
