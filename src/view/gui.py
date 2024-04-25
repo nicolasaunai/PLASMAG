@@ -901,6 +901,20 @@ class MainGUI(QMainWindow):
         about_action = help_menu.addAction('&About PLASMAG')
         about_action.triggered.connect(self.show_about_dialog)
 
+        export_dep_tree_action = help_menu.addAction('&Export Dependency Tree')
+        export_dep_tree_action.triggered.connect(self.export_dependency_tree)
+
+    def export_dependency_tree(self):
+        try:
+            # Get the path to save the dependency tree
+            path, _ = QFileDialog.getSaveFileName(self, "Export Dependency Tree", "", "json Files (*.json)")
+            print(f"Exporting dependency tree to {path}")
+            dependency_tree = self.controller.engine.build_dependency_tree(path)
+            QMessageBox.information(self, "Export Successful", "The dependency tree has been exported successfully.")
+        except Exception as e:
+            QMessageBox.critical(self, "Export Failed",
+                                 f"An error occurred while exporting the dependency tree: {str(e)}")
+
     def change_plot_count(self):
         num, ok = QInputDialog.getInt(self, "Change Plot Count", "Number of Plots:", min=1, max=5, step=1)
         if ok and num != len(self.canvases):
