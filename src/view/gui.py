@@ -14,11 +14,11 @@ from pint import UnitRegistry
 import numpy as np
 import pandas as pd
 
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QPoint, QEvent
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QPoint, QEvent, QUrl
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton, QLabel, \
     QGridLayout, QSlider, QCheckBox, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QScrollArea, QFileDialog, \
     QMessageBox, QInputDialog, QTabWidget, QToolTip, QGroupBox, QSplitter, QDialog, QProgressDialog
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QDesktopServices
 from PyQt6.QtWidgets import QSplashScreen, QApplication
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -60,6 +60,36 @@ class ResizableImageLabel(QLabel):
 
     def get_pixmap(self):
         return self.unresized_pixmap
+
+class AboutDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("About PLASMAG")
+        self.setFixedSize(400, 300)
+
+        layout = QVBoxLayout()
+
+        label = QLabel(f"""
+PLASMAG is a simulation software 
+specifically designed for space magnetometers. 
+At its core, PLASMAG serves as a comprehensive tool 
+for the parameters adjustment. 
+
+Author: CNRS-LPP, France, Malik Mansour, Claire Revillet, Maxime Ronceray 
+Version: 1.1.0
+
+        """)
+        layout.addWidget(label)
+
+        # Ajoutez d'autres widgets selon vos besoins, par exemple un lien vers la documentation.
+        doc_button = QPushButton("Open Documentation")
+        doc_button.clicked.connect(self.open_documentation)
+        layout.addWidget(doc_button)
+
+        self.setLayout(layout)
+
+    def open_documentation(self):
+        QDesktopServices.openUrl(QUrl("https://forge-osuc.cnrs-orleans.fr/projects/plasmag/wiki/Wiki"))
 
 
 class EnlargedImageDialog(QDialog):
@@ -273,6 +303,9 @@ class MainGUI(QMainWindow):
 
         self.showMaximized()
 
+    def show_about_dialog(self):
+        dialog = AboutDialog(self)
+        dialog.exec()
     def load_spice_configs(self):
         try:
             current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -625,6 +658,7 @@ class MainGUI(QMainWindow):
             progress_dialog.setModal(True)
             progress_dialog.setMinimumDuration(0)
             progress_value = 0
+            QApplication.processEvents()
 
         if len(self.saved_spice_parameters) > 0:
 
@@ -681,9 +715,11 @@ class MainGUI(QMainWindow):
                     if not self.first_run:
                         progress_value += 1
                         progress_dialog.setValue(progress_value)
+                        QApplication.processEvents()
 
         if not self.first_run:
             progress_dialog.setValue(num_strategies)
+            QApplication.processEvents()
 
         self.first_run = False
     def reload_pixmap(self):
@@ -860,6 +896,10 @@ class MainGUI(QMainWindow):
         options_menu = self.menuBar().addMenu('&Options')
         change_plot_count_action = options_menu.addAction('Change Plot Count')
         change_plot_count_action.triggered.connect(self.change_plot_count)
+
+        help_menu = main_menu.addMenu('&Help')
+        about_action = help_menu.addAction('&About PLASMAG')
+        about_action.triggered.connect(self.show_about_dialog)
 
     def change_plot_count(self):
         num, ok = QInputDialog.getInt(self, "Change Plot Count", "Number of Plots:", min=1, max=5, step=1)
