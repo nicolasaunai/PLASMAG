@@ -190,7 +190,6 @@ class CalculationController:
         self.engine = CalculationEngine(backups_count=backups_count)
         self.is_data_ready = False
         self.params = None
-        self.strategy_map = {}
 
         for node_name, info in STRATEGY_MAP.items():
             default_strategy = info["default"]()

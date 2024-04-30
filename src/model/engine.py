@@ -173,6 +173,26 @@ class CalculationEngine:
 
         return dependency_tree
 
+    def find_max_distances_to_leaves(self, dependency_tree):
+        distances = {}
+
+        def traverse(node, path):
+            if not node:
+                return 0
+
+            max_depth = -1
+            for key, value in node.items():
+                depth = traverse(value, path + [key])
+                max_depth = max(max_depth, depth)
+
+            distances[path[-1]] = max_depth + 1
+            return max_depth + 1
+
+        for root_key, subtree in dependency_tree.items():
+            traverse(subtree, [root_key])
+
+        return distances
+
     def check_for_cycles(self):
         """
         Performs a cycle detection in the graph of calculation nodes to prevent infinite recursion or deadlock

@@ -10,6 +10,9 @@ import os
 import sys
 import time
 import warnings
+import webbrowser
+from datetime import datetime
+
 from pint import UnitRegistry
 import numpy as np
 import pandas as pd
@@ -27,6 +30,8 @@ from matplotlib.figure import Figure
 
 from qtrangeslider import QRangeSlider
 from src.controler.controller import CalculationController, STRATEGY_MAP
+
+from src.model.visualisation.create_tree import create_tree, add_title_description
 
 ureg: UnitRegistry = UnitRegistry()
 
@@ -47,7 +52,8 @@ class ResizableImageLabel(QLabel):
             scaled_size = self.original_pixmap.size()
             scaled_size.scale(size, Qt.AspectRatioMode.KeepAspectRatio)
             if not self.pixmap() or self.pixmap().size() != scaled_size:
-                self.setPixmap(self.original_pixmap.scaled(scaled_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                self.setPixmap(self.original_pixmap.scaled(scaled_size, Qt.AspectRatioMode.KeepAspectRatio,
+                                                           Qt.TransformationMode.SmoothTransformation))
 
     def mousePressEvent(self, event):
         self.clicked.emit()
@@ -60,6 +66,7 @@ class ResizableImageLabel(QLabel):
 
     def get_pixmap(self):
         return self.unresized_pixmap
+
 
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
@@ -75,7 +82,8 @@ specifically designed for space magnetometers.
 At its core, PLASMAG serves as a comprehensive tool 
 for the parameters adjustment. 
 
-Author: CNRS-LPP, France, Malik Mansour, Claire Revillet, Maxime Ronceray 
+Author: CNRS-LPP, France, Maxime Ronceray, Malik Mansour,
+Claire Revillet, 
 Version: 1.1.0
 
         """)
@@ -121,7 +129,6 @@ class EnlargedImageDialog(QDialog):
         self.resize(
             scaled_pixmap.size())
 
-
         QApplication.instance().installEventFilter(self)
 
     def eventFilter(self, obj, event):
@@ -135,6 +142,8 @@ class EnlargedImageDialog(QDialog):
         # Ensure the event filter is removed when dialog closes
         QApplication.instance().removeEventFilter(self)
         super().closeEvent(event)
+
+
 def convert_unit(value, from_unit, to_unit):
     """
     Converts the given value from one unit to another using Pint.
@@ -148,6 +157,8 @@ def convert_unit(value, from_unit, to_unit):
     if from_unit and to_unit:
         return (value * ureg(from_unit)).to(ureg(to_unit)).magnitude
     return value
+
+
 class ClickableLabel(QLabel):
     clicked = pyqtSignal()
 
@@ -168,13 +179,13 @@ class ToolTipLineEdit(QLineEdit):
         self.focusInEvent = self.showCustomToolTip
         self.setPlaceholderText(f"Default: {default_value}")
 
-
     def showCustomToolTip(self, event):
         super().focusInEvent(event)
         self.showToolTip()
 
     def showToolTip(self):
         QToolTip.showText(self.mapToGlobal(QPoint(0, 0)), self.tooltip_text, self)
+
 
 class CalculationThread(QThread):
     """
@@ -209,6 +220,7 @@ class MplCanvas(FigureCanvas):
     """
     A custom matplotlib canvas for displaying plots in the GUI.
     """
+
     def __init__(self):
         fig = Figure(figsize=(5, 4), dpi=100)
         self.axes = fig.add_subplot(111)
@@ -283,7 +295,6 @@ class MainGUI(QMainWindow):
         self.saved_spice_parameters = []
         self.first_run = True
 
-
         self.setWindowTitle("PLASMAG")
         self.setGeometry(100, 100, 2560, 1440)  # Adjust size as needed
 
@@ -306,6 +317,7 @@ class MainGUI(QMainWindow):
     def show_about_dialog(self):
         dialog = AboutDialog(self)
         dialog.exec()
+
     def load_spice_configs(self):
         try:
             current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -328,8 +340,6 @@ class MainGUI(QMainWindow):
         section. The input fields are organized in a scrollable area for better visibility and usability.
         """
         self.inputs = {}
-
-
 
         for section_name, section_parameters in self.input_parameters.items():
             if section_name == 'SPICE':
@@ -491,8 +501,6 @@ class MainGUI(QMainWindow):
 
         self.plot_results(self.latest_results)
 
-
-
     def init_canvas(self, number_of_plots=3, number_of_buttons=3):
         """
         Initializes the matplotlib canvas for plotting the calculation results.
@@ -513,9 +521,8 @@ class MainGUI(QMainWindow):
         buttons_labels = [str(i) for i in range(1, number_of_buttons + 1)]
         btn_list = []
 
-
         btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(0)  # Ensure no extra space between buttons
+        btn_layout.setSpacing(0)
 
         btn_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
@@ -549,7 +556,6 @@ class MainGUI(QMainWindow):
 
         for i, canvas in enumerate(self.canvases):
             canvas_layout = QVBoxLayout()
-
 
             top_layout = QHBoxLayout()
             canvas_layout.addLayout(top_layout)
@@ -596,10 +602,10 @@ class MainGUI(QMainWindow):
         QApplication.instance().installEventFilter(dialog)
         dialog.exec()
         QApplication.instance().removeEventFilter(dialog)
+
     def init_spice_settings(self):
         spice_group_box = QGroupBox("SPICE")
         spice_layout = QVBoxLayout()
-
 
         self.toggle_spice_button = QPushButton("+")
         self.toggle_spice_button.setFixedWidth(30)
@@ -617,7 +623,6 @@ class MainGUI(QMainWindow):
         self.spice_params_layout = QGridLayout()
         spice_contents_layout.addLayout(self.spice_params_layout)
 
-
         row = 0  # Initialize row counter
         if 'SPICE' in self.input_parameters:
             spice_params = self.input_parameters['SPICE']
@@ -631,13 +636,13 @@ class MainGUI(QMainWindow):
 
                 line_edit.textChanged.connect(lambda _, le=line_edit, param=param_name: self.validate_input(le, param))
 
-
                 self.spice_params_layout.addWidget(label, row, 0)  # Add label to the grid
                 self.spice_params_layout.addWidget(line_edit, row, 1)  # Add line edit next to label
                 row += 1
 
         self.circuit_image_label = ResizableImageLabel(QPixmap("ASIC_image_1.png"))
-        self.circuit_image_label.clicked.connect(lambda: self.show_enlarged_image(self.circuit_image_label.get_pixmap()))
+        self.circuit_image_label.clicked.connect(
+            lambda: self.show_enlarged_image(self.circuit_image_label.get_pixmap()))
         spice_contents_layout.addWidget(self.circuit_image_label)
 
         self.spice_contents.setHidden(True)
@@ -661,7 +666,6 @@ class MainGUI(QMainWindow):
             QApplication.processEvents()
 
         if len(self.saved_spice_parameters) > 0:
-
             self.saved_spice_strategies += self.saved_spice_parameters
             print(self.saved_spice_strategies)
             self.saved_spice_parameters = []
@@ -671,7 +675,6 @@ class MainGUI(QMainWindow):
             self.controller.delete_spice_nodes(self.saved_spice_strategies)
             self.saved_spice_strategies = []
             print(self.controller.engine.nodes)
-
 
         for i in reversed(range(self.spice_params_layout.count())):
             widget = self.spice_params_layout.itemAt(i).widget()
@@ -722,6 +725,7 @@ class MainGUI(QMainWindow):
             QApplication.processEvents()
 
         self.first_run = False
+
     def reload_pixmap(self):
         circuit_name = self.spice_circuit_combo.currentText()
         circuit_config = self.spice_configs[circuit_name]
@@ -732,9 +736,9 @@ class MainGUI(QMainWindow):
             print("Failed to load image from:", image_path)
         else:
             self.circuit_image_label.setPixmap(
-                pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation), unreized_pixmap=pixmap)
+                pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation),
+                unreized_pixmap=pixmap)
             print("Image loaded successfully from:", image_path)
-
 
     def toggle_spice_visibility(self):
         show = self.spice_contents.isHidden()
@@ -765,21 +769,16 @@ class MainGUI(QMainWindow):
 
         self.main_splitter.setSizes(sizes)
 
-
-
-
     def adjust_splitter_for_spice_hidden(self):
-        # Réduire l'espace alloué au volet Spice dans le splitter
         sizes = self.main_splitter.sizes()
         total = sum(sizes)
-        new_sizes = [total - 30, 30, sizes[2]]  # Réservez un minimum pour le bouton
+        new_sizes = [total - 30, 30, sizes[2]]
         self.main_splitter.setSizes(new_sizes)
 
     def adjust_splitter_for_spice_visible(self):
-        # Augmenter l'espace alloué au volet Spice dans le splitter
         sizes = self.main_splitter.sizes()
         total = sum(sizes)
-        new_sizes = [total * 0.7, total * 0.3, sizes[2]]  # Partage flexible selon votre préférence
+        new_sizes = [total * 0.7, total * 0.3, sizes[2]]
         self.main_splitter.setSizes(new_sizes)
 
     def init_ui(self):
@@ -810,9 +809,8 @@ class MainGUI(QMainWindow):
         self.optimisation_layout = QVBoxLayout(self.optimisation_tab)
         self.EMC_layout = QVBoxLayout(self.EMC_tab)
 
-
         # Grid layout for parameter inputs
-        self.grid_layout = QGridLayout() # Grid layout for global sliders
+        self.grid_layout = QGridLayout()  # Grid layout for global sliders
         self.init_parameters_input()
         self.init_strategy_selection()
         self.init_sliders()
@@ -836,16 +834,15 @@ class MainGUI(QMainWindow):
 
         # Initialize canvas based on configuration, if provided
         if self.config_dict is not None:
-            self.init_canvas(self.config_dict["number_of_plots"])
+            try:
+                self.init_canvas(self.config_dict["number_of_plots"])
+            except KeyError:
+                self.init_canvas(3)
         else:
             self.init_canvas()
 
         self.plot_widget = QWidget()
         self.plot_widget.setLayout(self.plot_layout)
-
-        # set stretch factors for the splitter
-
-
 
         param_proportion = 2  # Default proportion for parameter layout
         plot_proportion = 4  # Default proportion for plot layout
@@ -868,7 +865,6 @@ class MainGUI(QMainWindow):
         self.main_splitter.setStretchFactor(1, 1)
 
         self.main_splitter.setStretchFactor(2, 4)
-
 
         # Initialize controllers, assuming there are as many save buttons as there are canvases
         self.init_controller(backups_count=3)
@@ -903,6 +899,75 @@ class MainGUI(QMainWindow):
 
         export_dep_tree_action = help_menu.addAction('&Export Dependency Tree')
         export_dep_tree_action.triggered.connect(self.export_dependency_tree)
+
+        display_graph_action = help_menu.addAction('Display Community Graph ')
+        display_graph_action.triggered.connect(self.display_graph_community)
+
+        display_graph_distance_action = help_menu.addAction('Display Distance Graph ')
+        display_graph_distance_action.triggered.connect(self.display_graph_distance)
+
+        display_graph_degree_action = help_menu.addAction('Display Degree Graph ')
+        display_graph_degree_action.triggered.connect(self.display_graph_degree)
+
+    def display_graph_community(self):
+        self.display_graph(clustering_type="community")
+
+    def display_graph_distance(self):
+        self.display_graph(clustering_type="distance")
+
+    def display_graph_degree(self):
+        self.display_graph(clustering_type="degree")
+
+    def display_graph(self, clustering_type="degree"):
+        """
+           Opens an HTML file in the default system web browser.
+
+           Args:
+               file_path (str): The path to the HTML file to open.
+           """
+        print("Displaying graph : " + clustering_type)
+        path = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + "/output/visualisation_graph/"
+        date = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+
+        description = "This graph represents the structure of the dependency tree.<br>Exported with the following strategies for each node:<br><ul>"
+
+        for node in self.controller.engine.nodes:
+            node_strategy = self.controller.engine.nodes[node].get_strategy().__class__.__name__
+            if node_strategy == "NoneType":
+                node_strategy = "Leaf"
+            description += f"<li><b>Node {node} : </b> {node_strategy}</li>"
+
+        description += "</ul>"
+
+        if clustering_type == "community":
+            data = self.controller.engine.build_dependency_tree()
+            file_title = "network_community" + date + ".html"
+            title = "Community Graph - " + date
+            create_tree(data, path + file_title, type="community", skip_frequency_vector=False)
+            add_title_description(path + file_title, title, description)
+            full_path = path + file_title
+            webbrowser.open(full_path)
+
+        elif clustering_type == "distance":
+            data = self.controller.engine.build_dependency_tree()
+            file_title = "network_distance" + date + ".html"
+            title = "Distance Graph - " + date
+            create_tree(data, path + file_title, type="distance", skip_frequency_vector=False)
+            add_title_description(path + file_title, title, description)
+            full_path = path + file_title
+            webbrowser.open(full_path)
+
+        elif clustering_type == "degree":
+            data = self.controller.engine.build_dependency_tree()
+            file_title = "network_degree" + date + ".html"
+            title = "Degree Graph - " + date
+            create_tree(data, path + file_title, type="degree", skip_frequency_vector=False)
+            add_title_description(path + file_title, title, description)
+            full_path = path + file_title
+            webbrowser.open(full_path)
+        else:
+            QMessageBox.critical(self, "Error", "The specified clustering type is not valid.")
+
 
     def export_dependency_tree(self):
         try:
@@ -948,7 +1013,7 @@ class MainGUI(QMainWindow):
         self.init_canvas(num_plots)
 
     def load_background_curve(self, canvas_index):
-        try :
+        try:
             file_path, _ = QFileDialog.getOpenFileName(self, "Select Background Curve File", "", "CSV Files (*.csv)")
             if file_path:
                 x_data, y_data = self.load_and_normalize_curve(file_path)
@@ -1049,7 +1114,7 @@ class MainGUI(QMainWindow):
         Exported parameters can be imported back into the application.
         :return:
         """
-        try :
+        try:
             fileName, _ = QFileDialog.getSaveFileName(self, "Save Parameters", "", "JSON Files (*.json)")
             if not fileName:
                 return  # User canceled the dialog
@@ -1087,7 +1152,7 @@ class MainGUI(QMainWindow):
         :return:
         """
         # Show an open file dialog to the user
-        try :
+        try:
             fileName, _ = QFileDialog.getOpenFileName(self, "Import Parameters", "", "JSON Files (*.json)")
             if fileName:
                 # If a file is selected, load the parameters from that file
@@ -1250,13 +1315,11 @@ class MainGUI(QMainWindow):
         else:  # fine adjustment, preserve integer part from coarse slider
             new_value = int(coarse_value) + fine_value
 
-        try :
+        try:
             line_edit.setText(f"{new_value:.3f}")  # Format with 3 decimal places
             self.calculation_timer.start()
         except RuntimeError as e:
             print(f"Error updating input value: {e}")
-
-
 
     def retrieve_parameters(self):
         params_dict = {}
@@ -1268,7 +1331,7 @@ class MainGUI(QMainWindow):
                     continue
 
                 if param in self.inputs:
-                    try :
+                    try:
                         text = self.inputs[param].text()
                     except RuntimeError as e:
                         print(f"Error retrieving input value: {e}")
@@ -1287,6 +1350,7 @@ class MainGUI(QMainWindow):
                         return None
 
         return params_dict
+
     def calculate(self):
         """
         Gathers the current parameter values from the input fields, initiates the calculation process through
@@ -1295,7 +1359,7 @@ class MainGUI(QMainWindow):
         """
         # Retrieve parameters from inputs and convert units where necessary
 
-        if self.block_calculation :
+        if self.block_calculation:
             return
         params_dict = self.retrieve_parameters()
 
@@ -1424,7 +1488,7 @@ class MainGUI(QMainWindow):
 
         if self.latest_results is not None:
             available_results = list(self.latest_results.keys())
-        else :
+        else:
             available_results = None
         if 'frequency_vector' in available_results:
             available_results.remove('frequency_vector')
@@ -1471,7 +1535,6 @@ class MainGUI(QMainWindow):
 
         # Optionally, trigger a recalculation if you want immediate feedback on the reset values
         self.calculate()
-
 
     def validate_input(self, line_edit, parameter):
         """
@@ -1562,9 +1625,9 @@ class MainGUI(QMainWindow):
                     continue
 
                 if param in self.inputs:
-                    try :
-                     text = self.inputs[param].text()
-                    except RuntimeError :
+                    try:
+                        text = self.inputs[param].text()
+                    except RuntimeError:
                         pass
                     try:
                         value = float(text)
@@ -1649,6 +1712,7 @@ class MainGUI(QMainWindow):
 
         return strategies_instances
 
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
@@ -1661,11 +1725,13 @@ if __name__ == "__main__":
 
     app.processEvents()
 
+
     def initialize_main_window():
         global window
         window = MainGUI()
         window.show()
         splash.finish(window)
+
 
     QTimer.singleShot(1000, initialize_main_window)
 
