@@ -275,9 +275,12 @@ class CalculationEngine:
 
         if node_name in self.nodes:
             try :
-                del self.nodes[node_name]
+                self.nodes.pop(node_name)
                 self.build_inverse_dependencies()
                 self.check_for_cycles()
+
+                # Delete from the current_output_data
+                self.current_output_data.results.pop(node_name)
             except Exception as e:
                 print(f"Error while deleting node {node_name} : {e}")
         else:

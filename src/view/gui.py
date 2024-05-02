@@ -300,7 +300,6 @@ class MainGUI(QMainWindow):
 
         self.load_default_parameters()
         self.load_spice_configs()
-        self.merge_spice_parameters()
 
         self.f_start_value = self.input_parameters["misc"]['f_start']['default']
         self.f_stop_value = self.input_parameters["misc"]['f_stop']['default']
@@ -342,7 +341,7 @@ class MainGUI(QMainWindow):
         self.inputs = {}
 
         for section_name, section_parameters in self.input_parameters.items():
-            if section_name == 'SPICE':
+            if section_name == 'SPICE' or section_name == 'SPICE_circuit':
                 continue
             section_widget = QWidget()
             section_layout = QGridLayout()
@@ -437,7 +436,10 @@ class MainGUI(QMainWindow):
         """
         if reload:
             current_dir = os.path.dirname(os.path.realpath(__file__))
-            json_file_path = os.path.join(current_dir, '..', '..', 'data', 'default.json')
+            if "default_file" in self.config_dict:
+                json_file_path = os.path.join(current_dir, '..', '..', 'data', self.config_dict["default_file"])
+            else:
+                json_file_path = os.path.join(current_dir, '..', '..', 'data', 'default.json')
             json_file_path = os.path.normpath(json_file_path)
 
             print("Loading default parameters from: ", json_file_path)
@@ -445,12 +447,31 @@ class MainGUI(QMainWindow):
             try:
                 with open(json_file_path, 'r', encoding="utf-8") as json_file:
                     self.input_parameters = json.load(json_file)
+
+                    try :
+                        self.default_spice_circuit = self.input_parameters['SPICE_circuit']
+                    except KeyError:
+                        self.default_spice_circuit = "NO Circuit Selected"
+
+                    # Remove the SPICE_circuit key from the input parameters
+                    self.input_parameters.pop('SPICE_circuit', None)
             except FileNotFoundError:
                 print(f"File{json_file_path} not found.")
             except json.JSONDecodeError:
                 print(f"Error reading : {json_file_path}.")
         else:
             self.input_parameters = self.input_parameters
+            self.default_spice_circuit = self.input_parameters['SPICE_circuit']
+
+            # Remove the SPICE_circuit key from the input parameters
+            self.input_parameters.pop('SPICE_circuit', None)
+
+            #get the index of the default circuit in the combobox
+            index = self.spice_circuit_combo.findText(self.default_spice_circuit)
+            self.spice_circuit_combo.setCurrentIndex(index)
+
+
+
 
     def init_timer(self, timer_value=50):
         """
@@ -623,6 +644,10 @@ class MainGUI(QMainWindow):
         self.spice_params_layout = QGridLayout()
         spice_contents_layout.addLayout(self.spice_params_layout)
 
+        print("Init spice settings")
+        print(self.spice_configs)
+
+        print(self.input_parameters)
         row = 0  # Initialize row counter
         if 'SPICE' in self.input_parameters:
             spice_params = self.input_parameters['SPICE']
@@ -653,6 +678,7 @@ class MainGUI(QMainWindow):
 
     def update_spice_parameters_ui(self, index):
         circuit_name = self.spice_circuit_combo.itemText(index)  # Get selected circuit name
+        self.merge_spice_parameters(circuit_name)
         circuit_config = self.spice_configs[circuit_name]  # Get the configuration for the selected circuit
         self.saved_circuit_name = circuit_name  # Store the selected circuit name
 
@@ -723,8 +749,15 @@ class MainGUI(QMainWindow):
         if not self.first_run:
             progress_dialog.setValue(num_strategies)
             QApplication.processEvents()
+            progress_dialog.close()
+
 
         self.first_run = False
+
+        self.calculate()
+
+
+
 
     def reload_pixmap(self):
         circuit_name = self.spice_circuit_combo.currentText()
@@ -747,18 +780,20 @@ class MainGUI(QMainWindow):
         self.adjust_spice_splitter(show)
         self.reload_pixmap()
 
-    def merge_spice_parameters(self):
-        if self.spice_configs is not None:
-            for circuit_name, circuit_details in self.spice_configs.items():
-                if 'parameters' in circuit_details:
-                    if 'SPICE' not in self.input_parameters:
-                        self.input_parameters['SPICE'] = {}
+    def merge_spice_parameters(self, selected_circuit_name):
+        if 'SPICE' not in self.input_parameters:
+            self.input_parameters['SPICE'] = {}
+        self.input_parameters['SPICE'].clear()
 
-                    self.input_parameters['SPICE'].update(circuit_details['parameters'])
-
-            print("Merge successful.")
+        if selected_circuit_name in self.spice_configs:
+            circuit_details = self.spice_configs[selected_circuit_name]
+            if 'parameters' in circuit_details:
+                self.input_parameters['SPICE'].update(circuit_details['parameters'])
+                print(f"Parameters for {selected_circuit_name} merged successfully.")
+            else:
+                print(f"No parameters found for {selected_circuit_name}.")
         else:
-            print("No circuits found in SPICE configurations.")
+            print(f"{selected_circuit_name} not found in SPICE configurations.")
 
     def adjust_spice_splitter(self, show):
         sizes = self.main_splitter.sizes()
@@ -1120,6 +1155,7 @@ class MainGUI(QMainWindow):
                 return  # User canceled the dialog
 
             # Prepare the parameters with updated defaults based on current GUI inputs
+            print(self.input_parameters)
             updated_parameters = self.input_parameters.copy()
             for section_name, parameters in updated_parameters.items():
                 for param_name in parameters:
@@ -1137,6 +1173,16 @@ class MainGUI(QMainWindow):
                             # Handle the case where the current value is not a valid float
                             print(
                                 f"Warning: Skipping parameter '{param_name}' with non-numeric input '{current_value}'.")
+
+            try :
+                # Retrieve the currelnly selected SPICE circuit from the combo box
+                selected_circuit = self.spice_circuit_combo.currentText()
+
+                # Add the selected SPICE circuit to the updated parameters
+                updated_parameters["SPICE_circuit"] = selected_circuit
+            except Exception as e:
+                print(f"Error adding SPICE circuit to updated parameters: {e}")
+                pass
 
             # If a file name is selected, save the updated parameters to that file
             with open(fileName, 'w') as json_file:
@@ -1334,6 +1380,7 @@ class MainGUI(QMainWindow):
                     try:
                         text = self.inputs[param].text()
                     except RuntimeError as e:
+                        print(param, e)
                         print(f"Error retrieving input value: {e}")
                         continue
                     try:
@@ -1522,7 +1569,8 @@ class MainGUI(QMainWindow):
         # Iterate through categories and their parameters
         print(f"reset params {reload}")
         self.load_default_parameters(reload=reload)
-        self.merge_spice_parameters()
+        selected_circuit = self.spice_circuit_combo.currentText()
+        self.merge_spice_parameters(selected_circuit)
         for category, parameters in self.input_parameters.items():
             for parameter in parameters:
                 if parameter in self.inputs:
