@@ -309,7 +309,9 @@ class MainGUI(QMainWindow):
         self.init_ui()
         self.init_menu()
 
-        self.update_spice_parameters_ui(0)
+        index = self.spice_circuit_combo.findText(self.default_spice_circuit)
+        self.spice_circuit_combo.setCurrentIndex(index)
+
 
         self.showMaximized()
 

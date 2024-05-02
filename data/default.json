@@ -1,7 +1,7 @@
 {
     "CORE": {
         "mu_insulator": {
-            "default": 1,
+            "default": 1.0,
             "min": 0,
             "max": 10,
             "description": "Permeability of the insulator",
@@ -9,7 +9,7 @@
             "target_unit": ""
         },
         "kapthon_thick": {
-            "default": 30,
+            "default": 30.0,
             "min": 10,
             "max": 300,
             "description": "Thickness of the kapthon in micrometers",
@@ -17,7 +17,7 @@
             "target_unit": "meter"
         },
         "insulator_thick": {
-            "default": 10,
+            "default": 10.0,
             "min": 1,
             "max": 100,
             "description": "Thickness of the insulator in micrometers",
@@ -33,7 +33,7 @@
             "target_unit": "meter"
         },
         "len_core": {
-            "default": 20,
+            "default": 20.0,
             "min": 1,
             "max": 200,
             "description": "Length of the core in centimeters",
@@ -51,7 +51,7 @@
     },
     "COIL": {
         "mu_r": {
-            "default": 100000,
+            "default": 100000.0,
             "min": 1,
             "max": 1000000,
             "description": "Relative permeability",
@@ -59,7 +59,7 @@
             "target_unit": ""
         },
         "len_coil": {
-            "default": 155,
+            "default": 155.0,
             "min": 1,
             "max": 200,
             "description": "Length of the coil in millimeters",
@@ -67,7 +67,7 @@
             "target_unit": "meter"
         },
         "nb_spire": {
-            "default": 12100,
+            "default": 12100.0,
             "min": 1000,
             "max": 20000,
             "description": "Number of spires",
@@ -75,7 +75,7 @@
             "target_unit": ""
         },
         "ray_spire": {
-            "default": 5,
+            "default": 5.0,
             "min": 1,
             "max": 100,
             "description": "Radius of the spire in millimeters",
@@ -91,7 +91,7 @@
             "target_unit": ""
         },
         "coeff_expansion": {
-            "default": 1,
+            "default": 1.0,
             "min": 1,
             "max": 10,
             "description": "Expansion coefficient",
@@ -99,7 +99,7 @@
             "target_unit": ""
         },
         "diam_wire": {
-            "default": 90,
+            "default": 90.0,
             "min": 10,
             "max": 300,
             "description": "Diameter of the wire in micrometers",
@@ -107,7 +107,7 @@
             "target_unit": "meter"
         },
         "capa_tuning": {
-            "default": 1,
+            "default": 1.0,
             "min": 1,
             "max": 1000,
             "description": "Tuning capacitance in picofarads",
@@ -115,7 +115,7 @@
             "target_unit": "farad"
         },
         "capa_triwire": {
-            "default": 150,
+            "default": 150.0,
             "min": 10,
             "max": 1000,
             "description": "Triwire capacitance in picofarads",
@@ -125,7 +125,7 @@
     },
     "ASIC": {
         "stage_1_cutting_freq": {
-            "default": 100,
+            "default": 100.0,
             "min": 1,
             "max": 1000000,
             "description": "Cutting frequency of the first stage in Hertz",
@@ -133,7 +133,7 @@
             "target_unit": "hertz"
         },
         "stage_2_cutting_freq": {
-            "default": 20000,
+            "default": 20000.0,
             "min": 1,
             "max": 1000000,
             "description": "Cutting frequency of the second stage in Hertz",
@@ -141,7 +141,7 @@
             "target_unit": "hertz"
         },
         "gain_1_linear": {
-            "default": 1,
+            "default": 1.0,
             "min": 1,
             "max": 1000,
             "description": "Gain of the first stage in linear",
@@ -149,7 +149,7 @@
             "target_unit": ""
         },
         "gain_2_linear": {
-            "default": 1,
+            "default": 1.0,
             "min": 1,
             "max": 1000,
             "description": "Gain of the second stage in linear",
@@ -159,7 +159,7 @@
     },
     "misc": {
         "mutual_inductance": {
-            "default": 1,
+            "default": 1.0,
             "min": 0,
             "max": 1,
             "description": "Mutual inductance",
@@ -167,7 +167,7 @@
             "target_unit": ""
         },
         "feedback_resistance": {
-            "default": 1000,
+            "default": 1000.0,
             "min": 1,
             "max": 100000,
             "description": "Feedback resistance in Ohms",
@@ -191,7 +191,7 @@
             "target_unit": "hertz"
         },
         "nb_points_per_decade": {
-            "default": 100,
+            "default": 100.0,
             "min": 10,
             "max": 1000,
             "description": "Number of points per decade",
@@ -199,7 +199,7 @@
             "target_unit": ""
         },
         "temperature": {
-            "default": 296,
+            "default": 296.0,
             "min": 0,
             "max": 500,
             "description": "Temperature in Kelvin, used for Noise calculation",
@@ -207,9 +207,9 @@
             "target_unit": ""
         }
     },
-    "flicker" : {
+    "flicker": {
         "Para_A": {
-            "default": 766,
+            "default": 766.0,
             "min": 1,
             "max": 1000,
             "description": "Parameter A",
@@ -217,7 +217,7 @@
             "target_unit": ""
         },
         "Para_B": {
-            "default": 34,
+            "default": 34.0,
             "min": 1,
             "max": 100,
             "description": "Parameter B",
@@ -225,7 +225,7 @@
             "target_unit": ""
         },
         "Alpha": {
-            "default": 7,
+            "default": 7.0,
             "min": 1,
             "max": 100,
             "description": "Alpha",
@@ -233,7 +233,7 @@
             "target_unit": ""
         },
         "e_en": {
-            "default": 1,
+            "default": 1.0,
             "min": 0,
             "max": 34,
             "description": "e_en",
@@ -241,12 +241,63 @@
             "target_unit": ""
         },
         "e_in": {
-            "default": 1,
+            "default": 1.0,
             "min": 0,
             "max": 34,
             "description": "e_in",
             "input_unit": "",
             "target_unit": ""
         }
-    }
+    },
+    "SPICE": {
+        "R1": {
+            "default": 1000.0,
+            "min": 1,
+            "max": 10000,
+            "description": "Spice resistance test",
+            "input_unit": "",
+            "target_unit": ""
+        },
+        "R2": {
+            "default": 2000.0,
+            "min": 1,
+            "max": 10000,
+            "description": "Spice resistance test",
+            "input_unit": "",
+            "target_unit": ""
+        },
+        "R3": {
+            "default": 3000.0,
+            "min": 1,
+            "max": 10000,
+            "description": "Spice resistance test",
+            "input_unit": "",
+            "target_unit": ""
+        },
+        "R4": {
+            "default": 4000.0,
+            "min": 1,
+            "max": 10000,
+            "description": "Spice resistance test",
+            "input_unit": "",
+            "target_unit": ""
+        },
+        "R5": {
+            "default": 5000.0,
+            "min": 1,
+            "max": 10000,
+            "description": "Spice resistance test",
+            "input_unit": "",
+            "target_unit": ""
+        },
+        "spice_resistance_test": {
+            "default": 1.0,
+            "min": 1,
+            "max": 10000,
+            "description": "Spice resistance test",
+            "input_unit": "",
+            "target_unit": ""
+        }
+    },
+    "SPICE_circuit": "NO Circuit Selected"
 }
