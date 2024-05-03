@@ -309,11 +309,15 @@ class MainGUI(QMainWindow):
         self.init_ui()
         self.init_menu()
 
-        index = self.spice_circuit_combo.findText(self.default_spice_circuit)
-        self.spice_circuit_combo.setCurrentIndex(index)
-
+        self.update_spice_parameters_ui(0)
 
         self.showMaximized()
+
+        QTimer.singleShot(0, self.post_init_setup)
+
+    def post_init_setup(self):
+        index = self.spice_circuit_combo.findText(self.default_spice_circuit)
+        self.spice_circuit_combo.setCurrentIndex(index)
 
     def show_about_dialog(self):
         dialog = AboutDialog(self)
@@ -347,6 +351,8 @@ class MainGUI(QMainWindow):
                 continue
             section_widget = QWidget()
             section_layout = QGridLayout()
+
+
             section_widget.setLayout(section_layout)
             section_layout.setSpacing(10)
 
