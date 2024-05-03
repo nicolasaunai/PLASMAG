@@ -248,5 +248,7 @@
             "input_unit": "",
             "target_unit": ""
         }
-    }
+    },
+        "SPICE_circuit": "NO Circuit Selected"
+
 }

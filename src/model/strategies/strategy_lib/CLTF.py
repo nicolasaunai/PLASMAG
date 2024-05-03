@@ -25,7 +25,11 @@ class CLTF_Strategy_Non_Filtered(CalculationStrategy):
         oltf_values = vectorized_oltf(nb_spire, ray_spire, mu_app, frequency_vector, TF_ASIC_Stage_1_linear, inductance, capacitance, resistance, mutual_inductance, feedback_resistance)
 
         frequency_oltf_tensor = np.column_stack((frequency_vector, oltf_values))
-        return frequency_oltf_tensor
+        return {
+            "data": frequency_oltf_tensor,
+            "labels": ["Frequency", "Gain"],
+            "units": ["Hz", ""]
+        }
 
     def calculate_cltf(self,
                        nb_spire,

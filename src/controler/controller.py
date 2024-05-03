@@ -5,9 +5,13 @@
 import importlib
 import json
 
+import numpy as np
+
 from src.model.strategies.strategy_lib.Noise import PSD_R_cr, PSD_R_cr_filtered, PSD_R_Coil, PSD_R_Coil_filtered, \
     PSD_Flicker, PSD_e_en, PSD_e_en_filtered, PSD_e_in, PSD_e_in_filtered, PSD_Total, PSD_Total_filtered, \
-    Display_all_PSD, NEMI, Display_all_PSD_filtered, NEMI_FIltered, NEMI_FIlteredv2, NEMI_FIlteredv3
+    Display_all_PSD, NEMI, Display_all_PSD_filtered, NEMI_FIltered, NEMI_FIlteredv2, NEMI_FIlteredv3, PSD_R_cr_V2, \
+    PSD_R_cr_filtered_V2, PSD_R_Coil_V2, PSD_R_Coil_filtered_V2, PSD_Flicker_V2, PSD_e_en_V2, PSD_e_en_filtered_V2, \
+    PSD_e_in_V2, PSD_e_in_filtered_V2
 from src.model.strategies.strategy_lib.CLTF import CLTF_Strategy_Filtered, \
     CLTF_Strategy_Non_Filtered_legacy, Display_CLTF_OLTF
 from src.model.strategies.strategy_lib.OLTF import OLTF_Strategy_Non_Filtered, OLTF_Strategy_Filtered
@@ -95,39 +99,39 @@ STRATEGY_MAP = {
     },
     "PSD_R_cr": {
         "default": PSD_R_cr,
-        "strategies": [PSD_R_cr]
+        "strategies": [PSD_R_cr, PSD_R_cr_V2]
     },
     "PSD_R_cr_filtered": {
         "default": PSD_R_cr_filtered,
-        "strategies": [PSD_R_cr_filtered]
+        "strategies": [PSD_R_cr_filtered,PSD_R_cr_filtered_V2]
     },
     "PSD_R_Coil": {
         "default": PSD_R_Coil,
-        "strategies": [PSD_R_Coil]
+        "strategies": [PSD_R_Coil, PSD_R_Coil_V2]
     },
     "PSD_R_Coil_filtered": {
         "default": PSD_R_Coil_filtered,
-        "strategies": [PSD_R_Coil_filtered]
+        "strategies": [PSD_R_Coil_filtered, PSD_R_Coil_filtered_V2]
     },
     "PSD_Flicker": {
         "default": PSD_Flicker,
-        "strategies": [PSD_Flicker]
+        "strategies": [PSD_Flicker, PSD_Flicker_V2]
     },
     "PSD_e_en": {
         "default": PSD_e_en,
-        "strategies": [PSD_e_en]
+        "strategies": [PSD_e_en, PSD_e_en_V2]
     },
     "PSD_e_en_filtered": {
         "default": PSD_e_en_filtered,
-        "strategies": [PSD_e_en_filtered]
+        "strategies": [PSD_e_en_filtered, PSD_e_en_filtered_V2]
     },
     "PSD_e_in": {
         "default": PSD_e_in,
-        "strategies": [PSD_e_in]
+        "strategies": [PSD_e_in, PSD_e_in_V2]
     },
     "PSD_e_in_filtered": {
         "default": PSD_e_in_filtered,
-        "strategies": [PSD_e_in_filtered]
+        "strategies": [PSD_e_in_filtered, PSD_e_in_filtered_V2]
     },
     "PSD_Total": {
         "default": PSD_Total,
@@ -281,4 +285,68 @@ class CalculationController:
         strategy_instance = strategy_class()
         print(strategy_instance)
         self.engine.swap_strategy_for_node(node_name, strategy_instance, params_dict)
+
+    def export_CLTF_NEMI(self, path):
+        """
+        IF the node is NEMI, and the node CLTF_filtered, plot both in the same graph and save it in the path
+        :param path: Full path to save the graph
+        :return: SUCCESS or ERROR
+        """
+
+        # Retrieve the results of the NEMI node if it exists
+        data = self.get_current_results()
+        if data is None:
+            raise "Error: No data available"
+
+        # Retrieve the results of the CLTF_Filtered node if it exists
+        try:
+            cltf_data = data.get("CLTF_Filtered", None)
+            nemi_data = data.get("NEMI", None)
+
+        except KeyError:
+            raise "Error: Missing data for CLTF_Filtered or NEMI"
+
+        try :
+            # Plot the data
+            import matplotlib.pyplot as plt
+            freq_vector = cltf_data["data"][:,0]
+            cltf_vector = 20*np.log(cltf_data["data"][:,1])
+            nemi_vector = nemi_data["data"][:,1]
+
+            fig, ax1 = plt.subplots()
+            color = 'tab:red'
+            ax1.set_xlabel('Frequency (Hz)')
+            ax1.semilogx()
+            ax1.semilogy()
+
+            ax1.set_ylabel('NEMI', color=color)
+            ax1.plot(freq_vector, nemi_vector, color=color)
+            ax1.tick_params(axis='y', labelcolor=color)
+
+            ax2 = ax1.twinx()
+            ax2.semilogx()
+            color = 'tab:blue'
+
+            ax2.set_ylabel('CLTF (dB)', color=color)
+            ax2.plot(freq_vector, cltf_vector, color=color)
+            ax2.tick_params(axis='y', labelcolor=color)
+
+            # add grid
+            ax1.grid("both")
+            ax2.grid("both")
+
+            path = str(path)
+
+            #if the path does not end with .png
+            if not path.endswith(".png"):
+                path += ".png"
+
+            print("Saving plot to : " + path)
+
+            plt.savefig(path)
+
+
+            return "SUCCESS"
+        except Exception as e:
+            return "ERROR Plotting data : " + str(e)
 

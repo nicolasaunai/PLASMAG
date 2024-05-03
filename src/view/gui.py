@@ -932,6 +932,10 @@ class MainGUI(QMainWindow):
         export_results_btn = file_menu.addAction('&Export results')
         export_results_btn.triggered.connect(self.export_results)
 
+        export_CLTF_NEMI_btn = file_menu.addAction('&Export CLTF NEMI')
+        export_CLTF_NEMI_btn.triggered.connect(self.export_CLTF_NEMI)
+
+
         options_menu = self.menuBar().addMenu('&Options')
         change_plot_count_action = options_menu.addAction('Change Plot Count')
         change_plot_count_action.triggered.connect(self.change_plot_count)
@@ -960,6 +964,16 @@ class MainGUI(QMainWindow):
 
     def display_graph_degree(self):
         self.display_graph(clustering_type="degree")
+
+    def export_CLTF_NEMI(self):
+        try:
+            # Get the path to save the dependency tree
+            path, _ = QFileDialog.getSaveFileName(self, "Export CLTF NEMI", "", "json Files (*.png)")
+            message = self.controller.export_CLTF_NEMI(path)
+            QMessageBox.information(self, "Export Successful", "The CLTF NEMI has been exported successfully.")
+        except Exception as e:
+            QMessageBox.critical(self, "Export Failed",
+                                 f"An error occurred while exporting the CLTF NEMI: {str(e)}")
 
     def display_graph(self, clustering_type="degree"):
         """
