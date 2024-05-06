@@ -1,3 +1,21 @@
+# Table of Contents
+
+- [How to add a new calculation strategy](#How-to-add-a-new-calculation-strategy)
+  - [Preliminary Checks](#Preliminary-Checks)
+  - [Adding New Parameters](#Adding-New-Parameters)
+  - [Strategy Implementation](#Strategy-Implementation)
+  - [Method Specifications](#Method-Specifications)
+    - [Dependencies](#Dependencies)
+    - [Calculate method](#Calculate-method)
+- [How to add a new parameter](#How-to-add-a-new-parameter)
+     - [Unit Conversion](#Unit-Conversion)
+- [Linting](#Linting)
+- [Git Guidelines](#Git-Guidelines)
+  - [Branching Strategy](#Branching-Strategy)
+  - [Commit Message Format](#Commit-Message-Format)
+    - [Types](#Types)
+  - [Best Practices for Pull Requests](#Best-Practices-for-Pull-Requests)
+- [SPICE](#SPICE)
 
 # How to add a new calculation strategy
 
@@ -209,4 +227,94 @@ For more detailed examples and best practices on commit messages, refer to [this
 
 By following these guidelines, you contribute to the efficiency and clarity of the project, making it easier for others to review your contributions and maintain the project's health.
 
+# SPICE
 
+Simulation Program with Integrated Circuit Emphasis (SPICE) is a general-purpose analog electronic circuit simulator. It is a powerful tool for simulating and analyzing circuits, providing valuable insights into circuit behavior and performance. SPICE is widely used in the electronics industry for designing and testing circuits, making it an essential tool for electrical engineers and circuit designers.
+
+In PLASMAG, we integrate spice simulations to allow the user to create their own models and have more accurate results.
+
+## How to add a new SPICE model
+
+### 1. Prepare the JSON Configuration for the SPICE Module
+
+Each SPICE module is defined in a JSON file, which outlines the circuit characteristics along with associated parameters and calculation strategies. Here are the steps to prepare this file:
+
+1. **Module Key Creation:** 
+Add a new key in the JSON file (e.g., **spice_new_model**) that will act as a unique identifier for the new module.
+
+2. **Defining Module Attributes:**
+    -  **name:** The name of the module, such as "New OP AMP Model".
+    - **description:** A detailed description of the module, used for the user interface.
+    - **image:** The filename of the image representing the circuit (must be pre-added to the relevant images directory).
+
+3. **Parameters:**
+    Define all necessary parameters for the module. Each parameter should include:
+   - **default, min, max:** Default, minimum, and maximum values.
+   - **description:** A description of the parameter for the user interface.
+   - **input_unit and target_unit:** Input and conversion units, if applicable.
+
+4. **Strategies:**
+    - Add references to specific calculation strategies used by this module in the `src/model/strategies/strategy_lib/` directory.
+    - Each strategy must have a **name** and a **file** pointing to the Python script implementing the strategy.
+
+#### Example JSON Section for a New SPICE Module
+
+```json
+"spice_new_model" : {
+    "name" : "New OP AMP Model",
+    "description" : "An advanced test circuit for the spice simulator",
+    "image" : "new_op_amp_model.png",
+    "parameters" : {
+        "R1": {
+            "default": 500,
+            "min": 10,
+            "max": 10000,
+            "description": "Spice test resistance",
+            "input_unit": "ohm",
+            "target_unit": "ohm"
+        }
+    },
+    "strategies" : {
+        "SPICE_impedance" : {
+            "name" : "SPICE Impedance",
+            "file" : "src/model/strategies/strategy_lib/SPICE.py"
+        }
+    }
+}
+
+```
+
+### 2. Implement Calculation Strategies
+
+For each strategy listed in the JSON configuration:
+
+- Create a Python class in the specified file within `src/model/strategies/strategy_lib/`.
+- Each class should inherit from the **CalculationStrategy** class and implement necessary methods such as **calculate** and **get_dependencies**.
+- The calculate method should handle the specific SPICE simulation logic based on input parameters and dependencies defined in the module.
+
+
+### 3. Test and Validate
+
+Once the new module is configured and the strategies are implemented:
+
+- Test the module extensively to ensure that it works as expected with the SPICE simulator. You can try the script outside of PLASMAG
+in the `if __name__ == "__main__"`, with mock data.
+- Validate that all parameters and calculations produce accurate and reliable results.
+
+### 4. Update User Documentation and Interface
+
+-  Add any necessary documentation to help users understand how to use the new SPICE module.
+
+### 5. Commit Changes
+
+Follow the project's Git guidelines to commit and push the new module to the repository:
+
+- Create a feature branch, e.g., feature/spice_new_model.
+- Commit your changes with a clear message describing the addition of the new SPICE module.
+- Open a pull request for review.
+
+### 5. MISC
+
+- Make sure to return the results in SI units for consistency. X-axis values should be in Hz, or seconds for time-domain simulations.
+- If the X-axis is in the time domain, make sure to return the time vector as the first column of the tensor, with the following label : "Time"
+- If you are returning the Gain and the Phase, make sure to return a linear Gain, and the phase in radians. The first column should be the frequency values, the second column the gain, and the third column the phase, with the following labels : "Frequency", "Gain", "Phase"

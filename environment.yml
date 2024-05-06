@@ -1,4 +1,4 @@
-name: PLASMAG
+name: PLASMAG_22
 channels:
   - conda-forge
   - defaults

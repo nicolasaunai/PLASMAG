@@ -1486,6 +1486,7 @@ class MainGUI(QMainWindow):
                 return data_meta["data"][:, 0]  # Use the first column as the time vector
             return default_vector
 
+
         for i, (canvas, combo_box, checkbox) in enumerate(zip(self.canvases, self.comboboxes, self.checkboxes)):
             selected_key = combo_box.currentText()
             if not selected_key:

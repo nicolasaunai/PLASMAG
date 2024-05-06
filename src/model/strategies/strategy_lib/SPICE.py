@@ -142,6 +142,71 @@ class SPICE_op_Amp_gain(CalculationStrategy):
     def get_dependencies():
         return ['frequency_vector', "f_start", "f_stop", "spice_resistance_test", "temperature", "R1", "R2", "R3", "R4", "R5"]
 
+class SPICE_op_Amp_noise(CalculationStrategy):
+    def calculate(self, dependencies: dict, parameters: InputParameters):
+        temperature = parameters.data['temperature']
+        f_start = parameters.data['f_start']
+        f_stop = parameters.data['f_stop']
+
+        R1 = parameters.data['R1']
+        R2 = parameters.data['R2']
+        R3 = parameters.data['R3']
+        R4 = parameters.data['R4']
+        R5 = parameters.data['R5']
+
+        frequency_vector = dependencies['frequency_vector']['data']
+        logger = Logging.setup_logging()
+
+        # Convert temperature to degrees Celsius
+        temperature = temperature - 273.15
+
+        opAMP = 'src/model/strategies/strategy_lib/spice_lib/uA741.lib'
+
+        ##*********************************************
+        ## Circuit Netlist
+        circuit = Circuit('Op-amp circuits - Noise Analysis for Non-inverting Amplifier')
+        circuit.include(opAMP)
+
+        circuit.V(2, '+Vcc', circuit.gnd, 15 @ u_V)
+        circuit.V(3, '-Vcc', circuit.gnd, -15 @ u_V)
+
+        circuit.X(1, 'uA741', 'input', 'v-', '+Vcc', '-Vcc', 'out')
+
+        circuit.R(1, 'v-', circuit.gnd, R1@ u_Ω)
+        circuit.R(2, 'v-', 'x', R2@ u_Ω)
+        circuit.R(3, 'x', 'out', R3@ u_Ω)
+        circuit.R(4, 'x', circuit.gnd, R4@ u_Ω)
+        circuit.R('L', 'out', circuit.gnd, R5@ u_Ω)
+
+        ##*********************************************
+        ## Simulation: Noise Analysis
+        simulator = circuit.simulator(temperature=temperature, nominal_temperature=25)
+        analysis = simulator.noise(output_node='out', input_node='input', start_frequency=f_start @ u_Hz,
+                                   stop_frequency=f_stop @ u_Hz, number_of_points=len(frequency_vector),
+                                   variation='lin')
+
+
+
+        # Retrieve noise data for each frequency
+        frequency = np.array(analysis.frequency)
+        output_noise_voltage = np.array(analysis.noise_output_voltage_density)
+
+        # Interpolate the results onto the frequency vector if necessary
+        interpolated_noise = np.interp(frequency_vector, frequency, output_noise_voltage)
+
+        result = np.column_stack((frequency_vector, interpolated_noise))
+
+        return {
+            "data": result,
+            "labels": ["Frequency", "Output Noise Voltage Density"],
+            "units": ["Hz", "V/√Hz"]
+        }
+
+    @staticmethod
+    def get_dependencies():
+        return ['frequency_vector', "f_start", "f_stop", "temperature", "R1", "R2", "R3", "R4", "R5"]
+
+
 class SPICE_op_Amp_transcient(CalculationStrategy):
     def calculate(self, dependencies: dict, parameters: InputParameters):
         temperature = parameters.data['temperature']
@@ -299,40 +364,65 @@ if __name__ == "__main__" :
     f_stop = 1000000
     circuit = Circuit(' Imp JUICE')
 
-    circuit.SinusoidalVoltageSource('V1', 'N1', circuit.gnd, amplitude=1 @ u_V, frequency=1 @ u_kHz)
-    circuit.R('1', 'N001', 'N1', 550 @ u_Ω)
+    V1 = circuit.SinusoidalVoltageSource('V1', 'N1', circuit.gnd, amplitude=1 @ u_V, frequency=1 @ u_kHz)
+    circuit.R('1', 'N1', 'N001', 550 @ u_Ω)
     circuit.C('1', 'N2', 'N1', 150 @ u_pF)
     circuit.L('1', 'N2', 'N001', 12 @ u_H)
     circuit.R('2', 'N2', circuit.gnd, 1 @ u_kΩ)
 
-    circuit.R2.plus.add_current_probe(circuit)
+    # Set the simulation temperature
+    temperature = 25
 
-    simulator = circuit.simulator(temperature=25, nominal_temperature=25)
-    analysis = simulator.ac(start_frequency=f_start @ u_Hz, stop_frequency=f_stop @ u_Hz, number_of_points=10,
-                            variation='dec')  # 1 to 1MHz, 10 points per decade
+    # Setup the frequency range
+    f_start = 1
+    f_stop = 1000000
 
-    frequency = analysis.frequency.as_ndarray()
-    voltage_N1 = analysis['n1'].as_ndarray()
-    current_R2 = analysis['vr2_plus'].as_ndarray()
+    # Instantiate the simulator
+    simulator = circuit.simulator(temperature=temperature, nominal_temperature=25)
 
-    Z = voltage_N1 / current_R2
+    # Perform the noise analysis
+    analysis = simulator.noise(
+        output_node='N1',  # Correct node naming
+        ref_node='N2',  # Correct node naming
+        src='V1',  # Specify the correct noise source
+        points=100,
+        start_frequency=f_start @ u_Hz,  # Ensure the unit is properly appended
+        stop_frequency=f_stop @ u_Hz,  # Ensure the unit is properly appended
+        variation='dec'
+    )
 
-    # plot imepdance and phase
-    fig, ax = plt.subplots(2, 1, figsize=(10, 7))
-    ax[0].semilogx(frequency, np.abs(Z))
-    ax[0].semilogy()
-    ax[0].set_ylabel('Impedance [Ohm]')
-    ax[0].set_title('Impedance of the circuit')
-    ax[0].grid(True)
+    # Output the results
+    for frequency, noise in zip(analysis.frequency, analysis.noise_voltage_density):
+        print(f'Frequency: {frequency} Hz, Noise: {noise} V/√Hz')
 
-    ax[1].semilogx(frequency, np.angle(Z, deg=True))
-    ax[1].set_xlabel('Frequency [Hz]')
-    ax[1].set_ylabel('Phase [°]')
-    ax[1].set_title('Phase of the circuit')
-    ax[1].grid(True)
+    # circuit.R2.plus.add_current_probe(circuit)
+    #
+    # simulator = circuit.simulator(temperature=25, nominal_temperature=25)
+    # analysis = simulator.ac(start_frequency=f_start @ u_Hz, stop_frequency=f_stop @ u_Hz, number_of_points=10,
+    #                         variation='dec')  # 1 to 1MHz, 10 points per decade
+    #
+    # frequency = analysis.frequency.as_ndarray()
+    # voltage_N1 = analysis['n1'].as_ndarray()
+    # current_R2 = analysis['vr2_plus'].as_ndarray()
+    #
+    # Z = voltage_N1 / current_R2
 
-    plt.tight_layout()
-    plt.show()
+    # # plot imepdance and phase
+    # fig, ax = plt.subplots(2, 1, figsize=(10, 7))
+    # ax[0].semilogx(frequency, np.abs(Z))
+    # ax[0].semilogy()
+    # ax[0].set_ylabel('Impedance [Ohm]')
+    # ax[0].set_title('Impedance of the circuit')
+    # ax[0].grid(True)
+    #
+    # ax[1].semilogx(frequency, np.angle(Z, deg=True))
+    # ax[1].set_xlabel('Frequency [Hz]')
+    # ax[1].set_ylabel('Phase [°]')
+    # ax[1].set_title('Phase of the circuit')
+    # ax[1].grid(True)
+    #
+    # plt.tight_layout()
+    # plt.show()
 
 
 

@@ -88,10 +88,11 @@
           "name" : "SPICE test",
           "file" : "src/model/strategies/strategy_lib/SPICE.py"
         }
+
       }
     },
-    "spice_test2" : {
-      "name" : "Spice test OP AMP v2",
+    "Spice Impedance SCM" : {
+      "name" : "Spice Impedance SCM",
       "description" : "A simple test circuit for the spice simulator",
       "image" : "RLC_circuit.png",
       "parameters" : {
@@ -102,59 +103,11 @@
             "description": "Spice resistance test",
             "input_unit": "",
             "target_unit": ""
-        },
-        "R2": {
-            "default": 2000,
-            "min": 1,
-            "max": 10000,
-            "description": "Spice resistance test",
-            "input_unit": "",
-            "target_unit": ""
-        },
-        "R3": {
-            "default": 3000,
-            "min": 1,
-            "max": 10000,
-            "description": "Spice resistance test",
-            "input_unit": "",
-            "target_unit": ""
-        },
-        "R4": {
-            "default": 4000,
-            "min": 1,
-            "max": 10000,
-            "description": "Spice resistance test",
-            "input_unit": "",
-            "target_unit": ""
-        },
-        "R5": {
-            "default": 5000,
-            "min": 1,
-            "max": 10000,
-            "description": "Spice resistance test",
-            "input_unit": "",
-            "target_unit": ""
-        },
-         "spice_resistance_test" : {
-            "default": 1,
-            "min": 1,
-            "max": 10000,
-            "description": "Spice resistance test",
-            "input_unit": "",
-            "target_unit": ""
         }
       },
       "strategies" : {
     "SPICE_impedance": {
         "name": "SPICE_impedance",
-        "file": "src/model/strategies/strategy_lib/SPICE.py"
-    },
-    "SPICE_op_Amp_transcient": {
-        "name": "SPICE_op_Amp_transcient",
-        "file": "src/model/strategies/strategy_lib/SPICE.py"
-    },
-    "SPICE_op_Amp_gain": {
-        "name": "SPICE_op_Amp_gain",
         "file": "src/model/strategies/strategy_lib/SPICE.py"
     }
 }
