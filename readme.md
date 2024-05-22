@@ -29,7 +29,7 @@ However, its architecture is built with flexibility and extensibility in mind. T
 Clone the repository : 
 
 ```bash
-git clone https://forge-osuc.cnrs-orleans.fr/git/plasmag
+git clone https://github.com/nicolasaunai/PLASMAG
 ```
 
 ## Installation
